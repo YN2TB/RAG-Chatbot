@@ -1,0 +1,15 @@
+# Fast end-to-end check of the harness on the synthetic task.
+# Should finish in well under a minute and reach val/recall@1 near 1.0.
+_base_: base.yaml
+
+name: dev
+task: dev_toy
+
+train:
+  max_steps: 300
+  log_every: 50
+  eval_every: 100
+  save_every: 200
+  keep_last: 1
+  monitor: val/recall@1
+  monitor_mode: max

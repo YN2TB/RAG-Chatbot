@@ -1,0 +1,26 @@
+# Data — the raw corpus is 3.4 GB, never commit it
+*.jsonl
+data/
+!data/.gitkeep
+
+# Experiment outputs
+runs/
+checkpoints/
+*.pt
+*.ckpt
+*.faiss
+*.index
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Tooling
+.env
+.vscode/
+.idea/
