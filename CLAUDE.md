@@ -31,7 +31,7 @@ the short version.
 - Windows + PowerShell. `data.num_workers` defaults to 0; raising it is a measured decision.
 
 ```bash
-uv run pytest                                          # 15 tests, run before any experiment
+uv run pytest                                          # 16 tests, run before any experiment
 uv run python scripts/train.py configs/dev.yaml        # single run
 uv run python scripts/sweep.py sweeps/temperature.yaml # ablation grid -> CSV + Markdown
 ```
@@ -76,6 +76,9 @@ rows sharing a question string in one batch make each one's positive the other's
 
 ## Layout
 
+Each code folder carries its own `CLAUDE.md` stating that folder's inputs, outputs
+and boundary rules. Read it before changing anything inside.
+
 ```
 configs/          run configs; ablations inherit via `_base_:`
 sweeps/           ablation grids
@@ -98,6 +101,11 @@ runs/             per-run outputs (gitignored)
   bf16). Fixed in `_parse_scalar`; keep the regression tests.
 - **Duplicate final eval.** When `max_steps` was a multiple of `eval_every`, the last step
   logged twice. Fixed via `_last_eval_step`.
+- **`train/*` inflated by `grad_accum`.** The running totals were summed once per
+  micro-batch but divided by the number of optimisation steps, so every `train/*` scalar
+  read `grad_accum`× too high — invisible at the default `grad_accum=1`, and `val/*` was
+  never affected. Fixed in `trainer.py`; keep the regression test. Any accumulated run
+  logged before this needs its curve regenerated.
 
 ## Status
 
