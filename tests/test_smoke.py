@@ -28,6 +28,11 @@ def _cfg(tmp_path, **overrides):
     return load_config("configs/dev.yaml", base + [f"{k}={v}" for k, v in overrides.items()])
 
 
+def _records(cfg, prefix="train/"):
+    lines = (cfg.run_dir / "metrics.jsonl").read_text(encoding="utf-8").splitlines()
+    return [r for r in map(json.loads, lines) if any(k.startswith(prefix) for k in r)]
+
+
 def test_dev_toy_is_registered():
     assert "dev_toy" in available("task")
 
@@ -79,6 +84,29 @@ def test_grad_accum_matches_large_batch(tmp_path):
     b = Trainer(split, build("task", split.task, split)).train()
 
     assert a["val/loss"] == pytest.approx(b["val/loss"], rel=0.35)
+
+
+def test_train_scalars_are_not_scaled_by_grad_accum(tmp_path):
+    """`train/*` must be a mean over micro-batches, not a sum.
+
+    Regression: the running totals were accumulated once per micro-batch but
+    divided by the number of optimisation steps, so every `train/*` scalar read
+    `grad_accum` times too high. Both runs here take one step from the same seed,
+    so micro-batch 1 is identical and only the averaging can differ.
+    """
+    shared = {"data.batch_size": 32, "train.max_steps": 1, "train.log_every": 1}
+
+    plain = _cfg(tmp_path, name="accum1", **{"train.grad_accum": 1, **shared})
+    seed_everything(plain.seed)
+    Trainer(plain, build("task", plain.task, plain)).train()
+
+    accum = _cfg(tmp_path, name="accum2", **{"train.grad_accum": 2, **shared})
+    seed_everything(accum.seed)
+    Trainer(accum, build("task", accum.task, accum)).train()
+
+    one, two = _records(plain)[0], _records(accum)[0]
+    assert two["train/loss"] == pytest.approx(one["train/loss"], rel=0.2)
+    assert 0.0 <= two["train/acc"] <= 1.0, "accuracy is a mean of an indicator"
 
 
 def test_metrics_are_valid_jsonl(tmp_path):

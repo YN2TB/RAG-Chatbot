@@ -119,9 +119,12 @@ class Trainer:
                     loss = loss / cfg.grad_accum
                 self.scaler.scale(loss).backward()
 
-                running["loss"] = running.get("loss", 0.0) + float(loss.detach()) * cfg.grad_accum
+                # Both are averaged over `seen` optimisation steps below, so each
+                # micro-batch may contribute only its 1/grad_accum share. `loss` is
+                # already divided; the task's scalars are raw per-micro-batch means.
+                running["loss"] = running.get("loss", 0.0) + float(loss.detach())
                 for k, v in extra.items():
-                    running[k] = running.get(k, 0.0) + float(v)
+                    running[k] = running.get(k, 0.0) + float(v) / cfg.grad_accum
             seen += 1
 
             # ---- step -------------------------------------------------- #
