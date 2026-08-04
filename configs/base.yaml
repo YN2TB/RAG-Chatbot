@@ -8,8 +8,8 @@ device: auto
 out_dir: runs
 
 data:
-  train_path: train-qar.jsonl
-  val_path: val-qar.jsonl
+  train_path: amazonqa_train.jsonl
+  val_path: amazonqa_validation.jsonl
   processed_dir: data/processed
   batch_size: 64
   eval_batch_size: 128
@@ -17,7 +17,19 @@ data:
   max_query_len: 64
   max_doc_len: 128
   train_subset: null
+  val_subset: 4096
   dedup_questions_in_batch: true
+
+# Offline corpus preparation; read by scripts/prepare_data.py only.
+prepare:
+  selector: answer_overlap
+  min_positive_score: 0.10
+  min_snippet_tokens: 5
+  max_snippets: 32
+  test_fraction: 0.5
+  split_seed: 20260731
+  tokenizer_sample_docs: 400000
+  max_rows: null
 
 model:
   name: dev_toy

@@ -20,8 +20,8 @@ import yaml
 
 @dataclass
 class DataConfig:
-    train_path: str = "train-qar.jsonl"
-    val_path: str = "val-qar.jsonl"
+    train_path: str = "amazonqa_train.jsonl"
+    val_path: str = "amazonqa_validation.jsonl"
     processed_dir: str = "data/processed"
     batch_size: int = 64
     eval_batch_size: int = 128
@@ -29,9 +29,64 @@ class DataConfig:
     max_query_len: int = 64
     max_doc_len: int = 128
     train_subset: int | None = None  # None = all pairs; set for the data-scaling curve
+    # Evaluation runs at every `train.eval_every`, so a full 43k-row pass would cost
+    # more than the training between passes. A fixed prefix keeps the curve cheap and
+    # comparable across steps and runs; the headline number comes from
+    # scripts/evaluate_retrieval.py over the whole split, not from here.
+    val_subset: int | None = 4096
     # Guards against the false-negative problem: ~54k train rows share a question
     # string with another row, so naive in-batch negatives punish correct matches.
     dedup_questions_in_batch: bool = True
+
+
+@dataclass
+class PrepareConfig:
+    """Offline corpus preparation. Read by `scripts/prepare_data.py`, not by training.
+
+    AmazonQA gives no snippet-level relevance label: a row knows its answers but not
+    which review snippet supports them. The positive is therefore chosen by distant
+    supervision, and `selector` is the knob that decides how -- which makes it an
+    ablation axis for the DL report, not an implementation detail.
+    """
+
+    selector: str = "answer_overlap"  # answer_overlap | answer_recall | first
+    min_positive_score: float = 0.10  # below this the row has no trustworthy positive
+    min_snippet_tokens: int = 5  # drops "Great!"-style fragments from the pool
+    max_snippets: int = 32  # bounds the pool; the median row has ~9
+    test_fraction: float = 0.5  # of the *validation* file, split by asin
+    # Deliberately not `seed`: changing a run's seed must never reshuffle the split.
+    split_seed: int = 20260731
+    tokenizer_sample_docs: int = 400_000  # train-split texts sampled to fit the BPE
+    max_rows: int | None = None  # None = whole corpus; set for a smoke run
+
+
+@dataclass
+class RetrievalConfig:
+    """Untrained baselines the learned retriever has to beat.
+
+    Ranking is scoped to one product's snippet pool (~9 candidates), so these
+    numbers are not comparable with a global-index evaluation and must never share
+    a table column with one.
+    """
+
+    # bm25_global needs scripts/build_idf.py to have run; it is in the default table
+    # because pool-local `bm25` measurably under-performs plain `overlap`, so quoting
+    # `bm25` alone would understate what a lexical baseline can do.
+    baselines: list[str] = field(
+        default_factory=lambda: [
+            "random", "first", "overlap", "bm25", "bm25_global", "bm25_noidf",
+        ]
+    )
+    split: str = "val"  # val | test | train
+    ks: list[int] = field(default_factory=lambda: [1, 3, 5])
+    bm25_k1: float = 1.5
+    bm25_b: float = 0.75
+    idf_file: str = "idf.json"  # inside data.processed_dir; built by scripts/build_idf.py
+    idf_min_df: int = 5
+    # Pools are shuffled before scoring so that all-zero rows land at chance rather
+    # than defaulting to snippet 0 and silently importing the `first` baseline.
+    tie_break_seed: int = 12345
+    max_rows: int | None = None
 
 
 @dataclass
@@ -45,6 +100,10 @@ class ModelConfig:
     vocab_size: int = 32000
     max_len: int = 128
     pooling: str = "mean"  # mean | cls
+    # One tower or two. Two lets each side specialise (questions and review prose are
+    # different registers); one halves the parameters and gives every gradient twice
+    # the data. Which wins from scratch on 700k pairs is an ablation, not a given.
+    share_encoder: bool = False
     pretrained: str | None = None  # None = from scratch (the DL-report default)
 
 
@@ -52,7 +111,11 @@ class ModelConfig:
 class LossConfig:
     temperature: float = 0.05
     answerable_weight: float = 0.0  # lambda on the multi-task answerability head
-    hard_negatives: int = 0  # mined negatives per positive, 0 = in-batch only
+    # Same-product snippets added per row, on top of the in-batch negatives. They need
+    # no mining pass -- the product's pool is already in every record -- and they are
+    # the negatives that matter: an in-batch negative comes from another product, so
+    # rejecting it only requires recognising the topic.
+    hard_negatives: int = 0
 
 
 @dataclass
@@ -93,6 +156,8 @@ class RunConfig:
     device: str = "auto"
     out_dir: str = "runs"
     data: DataConfig = field(default_factory=DataConfig)
+    prepare: PrepareConfig = field(default_factory=PrepareConfig)
+    retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
     loss: LossConfig = field(default_factory=LossConfig)
     optim: OptimConfig = field(default_factory=OptimConfig)

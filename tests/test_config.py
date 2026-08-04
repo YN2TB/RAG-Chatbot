@@ -8,7 +8,7 @@ def test_loads_base_config():
     cfg = load_config("configs/base.yaml")
     assert isinstance(cfg, RunConfig)
     assert cfg.optim.scheduler == "cosine"
-    assert cfg.data.train_path.endswith("train-qar.jsonl")
+    assert cfg.data.train_path.endswith("amazonqa_train.jsonl")
 
 
 def test_base_inheritance_overrides_only_named_fields():
