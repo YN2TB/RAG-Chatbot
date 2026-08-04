@@ -3,7 +3,7 @@
 The package root holds the two things everything else depends on: the typed config
 and the component registry. Both are the **base of the dependency graph** — they
 import nothing from `qar`, and nothing in this folder may import `qar.training`,
-`qar.tasks` or `qar.eval`.
+`qar.tasks`, `qar.data` or `qar.eval`.
 
 ```
 config.py    YAML + CLI overrides -> RunConfig
@@ -30,8 +30,15 @@ Resolution order, in this order and no other:
 3. `_build` — recursive dataclass construction. **Unknown keys raise `KeyError`.**
 4. `_coerce` — each scalar cast to its annotated field type, `Optional` unwrapped.
 
-Public surface: `RunConfig`, the section dataclasses (`DataConfig`, `ModelConfig`,
-`LossConfig`, `OptimConfig`, `TrainConfig`), `load_config`, `apply_overrides`.
+Public surface: `RunConfig`, the section dataclasses (`DataConfig`, `PrepareConfig`,
+`ModelConfig`, `LossConfig`, `OptimConfig`, `TrainConfig`), `load_config`,
+`apply_overrides`.
+
+`PrepareConfig` describes the *offline* corpus build and is read only by
+`scripts/prepare_data.py`. It lives in `RunConfig` anyway so it is typed, defaulted
+and overridable like everything else — but a training run's `config.yaml` snapshot
+proves nothing about how its data was built. `data/processed/manifest.json` is the
+record that does.
 `cfg.run_dir` is derived (`out_dir / name`), never stored. `cfg.save(path)` writes
 the resolved snapshot.
 
@@ -84,3 +91,6 @@ two ablations silently ran the wrong component.
   reaches for a class directly, the config stops describing the run.
 - Adding a `kind` costs nothing (`_REGISTRIES` is created on demand); use one for
   models, encoders or retrievers when the retriever lands.
+
+Kinds in use today: `task` (populated by importing `qar.tasks`) and `selector`
+(populated by importing `qar.data`).

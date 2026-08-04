@@ -74,10 +74,22 @@ class Trainer:
         return value < self.best if self.cfg.train.monitor_mode == "min" else value > self.best
 
     def _endless(self, loader) -> Iterator[Any]:
-        """Cycle the loader so the loop is bounded by steps, not epochs."""
+        """Cycle the loader so the loop is bounded by steps, not epochs.
+
+        A loader that yields nothing would otherwise spin here forever, burning CPU
+        and looking exactly like a slow first step. A batch sampler that cannot
+        satisfy its constraint is the realistic way to get one.
+        """
         while True:
+            empty = True
             for batch in loader:
+                empty = False
                 yield batch
+            if empty:
+                raise RuntimeError(
+                    "train loader produced no batches; check data.batch_size against "
+                    "the split size and data.dedup_questions_in_batch"
+                )
 
     def maybe_resume(self) -> None:
         latest = find_latest(self.ckpt_dir)

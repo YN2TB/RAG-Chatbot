@@ -1,10 +1,11 @@
 # CLAUDE.md — tests/
 
-Harness correctness, not research results. 16 tests, all CPU, all a few seconds.
+Harness correctness, not research results. 40 tests, all CPU, all a few seconds.
 Run before every experiment: if these fail, any number the experiment produces is
 meaningless.
 
 ```bash
+uv sync --extra dev   # once: pytest is in the dev extra, and `uv run` never adds one
 uv run pytest
 ```
 
@@ -41,6 +42,17 @@ The last two are complementary: the first checks `val/*` (computed by
 `Task.validate`, never touched by the accumulation bug), the second checks the
 `train/*` running averages the trainer maintains itself.
 
+**test_data.py** (23) — the corpus pipeline, on a synthetic corpus written into
+`tmp_path`. Text normalisation and the F1/recall length bias; row parsing and the
+snippet floor; the three selectors; asin hashing (determinism, uniformity, the
+degenerate fractions); `prepare` end to end (every artifact written, products
+disjoint across all three splits, threshold drops, a malformed line survived);
+byte-offset indexing returning the right records; the collator's padding and mask.
+
+The synthetic rows carry the four baseline fields (`top_sentences_IR` and friends)
+precisely so the parser is tested on the shape the real corpus actually has, not on
+the shape the documentation used to claim.
+
 The overfit test is the important one. `dev_toy` is learnable by construction, so
 a loss that will not fall means the harness is broken, not the idea.
 
@@ -50,7 +62,9 @@ These tests read the real configs, so `configs/*.yaml` is part of the test
 contract:
 
 - `configs/base.yaml`: `optim.scheduler == "cosine"`, `optim.lr == 3e-4`,
-  `data.train_path` ends with `train-qar.jsonl`
+  `data.train_path` ends with `amazonqa_train.jsonl`. `test_data.py` also loads it as
+  the base for every prepare test, so a new `prepare.*` field needs a sane default
+  there or the whole data suite goes red
 - `configs/dev.yaml`: `name == "dev"`, `train.max_steps == 300`, and it must not
   override `optim.lr` (the inheritance test depends on it being inherited)
 

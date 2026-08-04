@@ -1,0 +1,38 @@
+# From-scratch dual encoder trained with InfoNCE over in-batch negatives.
+# Sized for 8 GB of VRAM: batch 64 is the number of negatives, and raising it is the
+# single highest-value change available -- grad_accum does NOT help, because
+# accumulation adds gradient steps, not candidates to the softmax.
+_base_: base.yaml
+
+name: retriever
+task: retriever
+
+model:
+  name: biencoder
+  d_model: 384
+  n_layers: 6
+  n_heads: 8
+  d_ff: 1536
+  dropout: 0.1
+  max_len: 128
+  pooling: mean
+  share_encoder: false
+
+loss:
+  temperature: 0.05
+  answerable_weight: 0.0   # turn on for the multi-task ablation
+
+optim:
+  lr: 3.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.06
+
+train:
+  max_steps: 20000
+  log_every: 100
+  eval_every: 1000
+  save_every: 2000
+  keep_last: 2
+  monitor: val/recall@1
+  monitor_mode: max
+  amp: bf16

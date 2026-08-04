@@ -4,6 +4,8 @@ Add new tasks here so `configs/*.yaml` can name them without any import in the
 training script.
 """
 
-from qar.tasks import dev_toy  # noqa: F401  (import for registration side effect)
+# Imported for the registration side effect; `__all__` re-exports them so no
+# linter suppression is needed.
+from qar.tasks import dev_toy, retriever
 
-__all__ = ["dev_toy"]
+__all__ = ["dev_toy", "retriever"]

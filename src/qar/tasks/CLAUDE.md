@@ -7,6 +7,7 @@ question changes.
 ```
 __init__.py   imports every task module for its registration side effect
 dev_toy.py    synthetic contrastive task — the harness's proof of life
+retriever.py  the real thing: dual encoder, InfoNCE, in-batch negatives
 ```
 
 ## Contract
@@ -70,6 +71,51 @@ nothing to do with the harness.
 
 Keep it fast and CPU-only. It is not a baseline and no number from it goes in
 either report.
+
+## retriever.py
+
+The DL report's subject. Two towers from `qar.models`, InfoNCE over in-batch
+negatives, data from `data.processed_dir` via `PairDataset` + `PairCollator`.
+
+**The batch size is part of the loss.** Batch 32 asks the model to pick 1 of 32;
+batch 256 asks it to pick 1 of 256 — a materially harder problem that yields a
+sharper representation. On 8 GB the achievable batch is a research constraint worth
+reporting, not a footnote. **`grad_accum` does not substitute for it**: accumulation
+adds gradient steps, not candidates to the softmax.
+
+**`val/recall@1` from this task is not the headline number.** It ranks within
+`data.eval_batch_size` candidates drawn from *different products*, which is a far
+easier problem than picking the right snippet out of one product's nine. It is a
+training signal. The number comparable with `runs/_baselines/` comes from
+`scripts/evaluate_retrieval.py`, and mixing the two in one table would be a serious
+misreport.
+
+The task raises if the tokenizer is larger than `model.vocab_size` (the embedding
+could not represent the corpus) and warns if smaller (BPE stopped early on a small
+corpus — legitimate, but those embedding rows are dead weight).
+
+`loss.answerable_weight > 0` adds the multi-task head's BCE to the loss and its
+metrics to the log. At 0 the head is not built at all.
+
+### Hard negatives
+
+`loss.hard_negatives = n` widens the score matrix from `[B, B]` to `[B, B + n]`, the
+extra columns being snippets from **that row's own product**. No mining pass is
+needed: the pool is already in every processed record.
+
+This is the negative that matters. An in-batch negative comes from a different
+product, so rejecting it only requires recognising the topic — a model can score well
+on it while learning nothing about whether a snippet *answers the question*. A
+same-product snippet shares all the topic vocabulary and differs only in relevance.
+
+They are **row-private, never shared across the batch**. Two rows in one batch can
+concern the same product (the sampler de-duplicates questions, not products), so a
+shared hard negative could be another row's positive — reintroducing exactly the
+false negative the sampler exists to remove.
+
+A pool with one usable snippet has no same-product negative. That slot is emitted as
+a placeholder and masked to `-inf`, leaving the softmax rather than pretending to be
+a candidate.
 
 ## Rules
 

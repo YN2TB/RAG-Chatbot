@@ -13,6 +13,23 @@ variables, no interactive prompts, no implicit state.
 **Out** — files under `runs/`. Everything a report needs is read back from disk,
 never scraped from stdout.
 
+## prepare_data.py
+
+```
+python scripts/prepare_data.py <config.yaml> [--set KEY=VALUE ...]
+```
+
+Offline, run once per prepare configuration. Reads `data.train_path` /
+`data.val_path`, writes the processed corpus, the BPE and a manifest into
+`data.processed_dir`. Everything it does is driven by `cfg.prepare` — see
+[src/qar/data/CLAUDE.md](../src/qar/data/CLAUDE.md) for the contract.
+
+Changing a `prepare.*` field produces a *different training corpus*. Point
+`data.processed_dir` somewhere new rather than overwriting; the two are an ablation
+pair, not successive versions of one thing.
+
+`prepare.max_rows=N` bounds the pass for a smoke run.
+
 ## train.py
 
 ```
