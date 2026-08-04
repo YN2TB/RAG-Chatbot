@@ -1,10 +1,11 @@
-# Data — the raw corpus is 3.4 GB, never commit it
+# Data — the raw corpus is 3.4 GB, never commit it.
+# The leading slash matters: an unanchored `data/` also matches src/qar/data/,
+# which silently excluded the whole corpus-preparation package from the repo.
 *.jsonl
-data/
-!data/.gitkeep
+/data/
 
 # Experiment outputs
-runs/
+/runs/
 checkpoints/
 *.pt
 *.ckpt
