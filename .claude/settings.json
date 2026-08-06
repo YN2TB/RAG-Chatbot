@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff check *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "deny": [
+      "Read(./amazonqa_train.jsonl)",
+      "Read(./amazonqa_validation.jsonl)",
+      "Read(./data/processed/train.jsonl)",
+      "Read(./data/processed/val.jsonl)",
+      "Read(./data/processed/test.jsonl)",
+      "Read(./data/processed/idf.json)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
