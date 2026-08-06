@@ -48,8 +48,6 @@ the short version.
 
 ## Hardware and environment
 
-- **RTX 5060 Laptop, 8 GB VRAM**, Blackwell sm_120. bf16 is native — it is the default AMP
-  mode and needs no GradScaler.
 - **Python 3.12** in `.venv` (3.14 is the machine default, but `tokenizers`/`faiss` lag there).
 - **torch 2.13.0+cu130**, pinned to the PyTorch index in `pyproject.toml`. The default PyPI
   Windows wheel is CPU-only — never install torch without that index.
