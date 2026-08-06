@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/models/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Architectures. Randomly initialised, trained only by the objective in the task.
 
 ```

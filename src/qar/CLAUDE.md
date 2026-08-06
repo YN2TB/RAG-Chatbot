@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 The package root holds the two things everything else depends on: the typed config
 and the component registry. Both are the **base of the dependency graph** — they
 import nothing from `qar`, and nothing in this folder may import `qar.training`,

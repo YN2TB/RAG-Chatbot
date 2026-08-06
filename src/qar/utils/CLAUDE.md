@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/utils/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Cross-cutting infrastructure: reproducibility, device/precision resolution,
 logging. Used by the trainer and the scripts, depended on by everything.
 

@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/retrieval/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Untrained baselines, and the harness that turns them into the results table the DL
 report needs before any trained number means anything.
 

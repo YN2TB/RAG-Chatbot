@@ -1,5 +1,9 @@
 # CLAUDE.md — scripts/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Command-line entry points. These are the only files a human runs directly, and they
 are deliberately thin: parse arguments, wire components together, hand off to
 `src/qar/`. No training logic, no metric definitions, no hyperparameter defaults

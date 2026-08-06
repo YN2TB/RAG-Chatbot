@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/training/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 The loop and everything generic around it: precision, gradient accumulation and
 clipping, LR scheduling, evaluation cadence, checkpoint rotation, early stopping,
 resume, metric logging.

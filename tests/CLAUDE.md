@@ -1,5 +1,9 @@
 # CLAUDE.md — tests/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Harness correctness, not research results. 40 tests, all CPU, all a few seconds.
 Run before every experiment: if these fail, any number the experiment produces is
 meaningless.

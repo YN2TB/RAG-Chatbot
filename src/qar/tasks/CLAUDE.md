@@ -1,5 +1,9 @@
 # CLAUDE.md — src/qar/tasks/
 
+> **Before touching this folder:** read `.claude/` (agent roster, permission
+> rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
+> same commit — what was learned, not what the diff shows.
+
 Everything trainable. A task owns the model, the data and the loss; the trainer
 owns the loop. This is the only folder that needs to change when the research
 question changes.

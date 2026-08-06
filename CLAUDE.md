@@ -2,6 +2,31 @@
 
 Working context for this project. Loaded automatically each session.
 
+## Before you write code, or anything else
+
+**1. Read `.claude/` first.** `.claude/agents/*.md` defines six specialist roles
+(`qar-explorer`, `qar-planner`, `qar-data-engineer`, `qar-ml-scientist`,
+`qar-validator`, `qar-reviewer`) and `.claude/settings.json` defines what may run
+without asking and what must never be read. Read them before starting work, not
+after — they carry the project's standing constraints, and the `deny` rules exist
+because a single `Read` of a 2.5 GB corpus file ends the session.
+
+`.claude/` is checked in, so it is there in every clone — there is no excuse for
+skipping it. It is also shared: a permission rule you add applies to everyone
+working on this repo, so `allow` entries stay read-only and `deny` keeps the
+multi-gigabyte corpus files out of any agent's context.
+
+Then read the `CLAUDE.md` of every folder you are about to touch. Those files are
+the specification — they state each folder's inputs, outputs and boundary rules,
+and a change that violates one is a defect even when the tests pass.
+
+**2. Record every change in `CHANGELOG.md`**, in the same commit as the change.
+Not a restatement of the diff — git already has that. Record what was *learned*:
+a measurement that came out against expectation, an assumption shown false, a
+default that moved and why, and what the change invalidates. A measured number
+goes in with the split it came from; `recall@1 0.2145` means nothing without
+"val, within-product, mean pool 9.32". `CHANGELOG.md` explains the entry format.
+
 ## What this is
 
 A review-grounded product QA system over AmazonQA, built as **coursework for two
