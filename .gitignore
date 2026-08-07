@@ -4,8 +4,15 @@
 *.jsonl
 /data/
 
-# Experiment outputs
-/runs/
+# Experiment outputs.
+# `/runs/*` and not `/runs/`: git never descends into an excluded *directory*, so a
+# later `!` rule could not re-include anything beneath it. Excluding the contents
+# instead leaves the directory visible and the negation below effective.
+/runs/*
+# Keep the measured results tables — 42 KB of JSON/Markdown that every number in the
+# reports is read from, and the only part of /runs/ that cannot be regenerated
+# without hours of GPU time. Checkpoints (550 MB each) stay ignored.
+!/runs/_baselines/
 checkpoints/
 *.pt
 *.ckpt
