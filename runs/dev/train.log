@@ -1,0 +1,15 @@
+21:54:03 INFO    train | config: configs\dev.yaml
+21:54:05 INFO    qar.training.trainer | run 'dev' | device=cuda (NVIDIA GeForce RTX 5060 Laptop GPU, 8.0 GiB, sm_120) amp=bfloat16
+21:54:05 INFO    qar.training.trainer | trainable parameters: 0.10M
+21:54:06 INFO    qar.training.trainer | step     50 | loss=2.9512 acc=0.3856 grad_norm=11.5264 lr=0.0003 steps_per_s=29.9728 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:07 INFO    qar.training.trainer | step    100 | loss=0.2150 acc=0.9269 grad_norm=2.5908 lr=0.0002 steps_per_s=62.5757 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:07 INFO    qar.training.trainer | step    100 | EVAL val/loss=0.2873 val/mrr=0.9366 val/recall@1=0.8770 val/recall@5=0.9980 val/recall@10=0.9990 val/mean_rank=1.1445
+21:54:07 INFO    qar.training.trainer | new best val/recall@1=0.8770
+21:54:08 INFO    qar.training.trainer | step    150 | loss=0.1390 acc=0.9381 grad_norm=1.6658 lr=0.0002 steps_per_s=40.1097 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:09 INFO    qar.training.trainer | step    200 | loss=0.1248 acc=0.9419 grad_norm=1.4350 lr=0.0001 steps_per_s=54.2266 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:09 INFO    qar.training.trainer | step    200 | EVAL val/loss=0.2238 val/mrr=0.9512 val/recall@1=0.9043 val/recall@5=1.0000 val/recall@10=1.0000 val/mean_rank=1.1016
+21:54:09 INFO    qar.training.trainer | new best val/recall@1=0.9043
+21:54:10 INFO    qar.training.trainer | step    250 | loss=0.1338 acc=0.9366 grad_norm=1.4623 lr=0.0000 steps_per_s=59.3152 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:11 INFO    qar.training.trainer | step    300 | loss=0.1098 acc=0.9463 grad_norm=1.3072 lr=0.0000 steps_per_s=38.6593 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:54:12 INFO    qar.training.trainer | step    300 | EVAL val/loss=0.2153 val/mrr=0.9515 val/recall@1=0.9043 val/recall@5=1.0000 val/recall@10=1.0000 val/mean_rank=1.0996
+21:54:12 INFO    train | done: {'best': 0.904296875, 'steps': 300, 'val/loss': 0.21526513621211052, 'val/mrr': 0.9514973908662796, 'val/recall@1': 0.904296875, 'val/recall@5': 1.0, 'val/recall@10': 1.0, 'val/mean_rank': 1.099609375}

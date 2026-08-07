@@ -1,0 +1,55 @@
+name: temp__temperature0p2
+task: dev_toy
+seed: 42
+deterministic: false
+device: auto
+out_dir: runs
+data:
+  train_path: train-qar.jsonl
+  val_path: val-qar.jsonl
+  processed_dir: data/processed
+  batch_size: 64
+  eval_batch_size: 128
+  num_workers: 0
+  max_query_len: 64
+  max_doc_len: 128
+  train_subset: null
+  dedup_questions_in_batch: true
+model:
+  name: dev_toy
+  d_model: 384
+  n_layers: 6
+  n_heads: 8
+  d_ff: 1536
+  dropout: 0.1
+  vocab_size: 32000
+  max_len: 128
+  pooling: mean
+  pretrained: null
+loss:
+  temperature: 0.2
+  answerable_weight: 0.0
+  hard_negatives: 0
+optim:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.98
+  eps: 1.0e-08
+  grad_clip: 1.0
+  scheduler: cosine
+  warmup_ratio: 0.06
+train:
+  max_steps: 300
+  grad_accum: 1
+  log_every: 50
+  eval_every: 100
+  save_every: 200
+  keep_last: 1
+  monitor: val/recall@1
+  monitor_mode: max
+  early_stop_patience: 0
+  amp: bf16
+  grad_checkpoint: false
+  compile: false

@@ -1,0 +1,15 @@
+21:53:27 INFO    train | config: configs\dev.yaml + ['loss.temperature=0.2', 'name=temp__temperature0p2', 'train.max_steps=300']
+21:53:28 INFO    qar.training.trainer | run 'temp__temperature0p2' | device=cuda (NVIDIA GeForce RTX 5060 Laptop GPU, 8.0 GiB, sm_120) amp=bfloat16
+21:53:28 INFO    qar.training.trainer | trainable parameters: 0.10M
+21:53:30 INFO    qar.training.trainer | step     50 | loss=3.1690 acc=0.4094 grad_norm=3.5558 lr=0.0003 steps_per_s=40.3765 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:30 INFO    qar.training.trainer | step    100 | loss=1.5349 acc=0.9319 grad_norm=2.1848 lr=0.0002 steps_per_s=72.1059 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:30 INFO    qar.training.trainer | step    100 | EVAL val/loss=1.9983 val/mrr=0.9466 val/recall@1=0.8945 val/recall@5=1.0000 val/recall@10=1.0000 val/mean_rank=1.1094
+21:53:31 INFO    qar.training.trainer | new best val/recall@1=0.8945
+21:53:31 INFO    qar.training.trainer | step    150 | loss=1.2409 acc=0.9381 grad_norm=1.6071 lr=0.0002 steps_per_s=64.7168 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:32 INFO    qar.training.trainer | step    200 | loss=1.1490 acc=0.9431 grad_norm=1.3987 lr=0.0001 steps_per_s=81.5728 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:32 INFO    qar.training.trainer | step    200 | EVAL val/loss=1.7875 val/mrr=0.9533 val/recall@1=0.9092 val/recall@5=1.0000 val/recall@10=1.0000 val/mean_rank=1.0986
+21:53:32 INFO    qar.training.trainer | new best val/recall@1=0.9092
+21:53:32 INFO    qar.training.trainer | step    250 | loss=1.1176 acc=0.9359 grad_norm=1.3295 lr=0.0000 steps_per_s=73.3630 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:33 INFO    qar.training.trainer | step    300 | loss=1.0963 acc=0.9450 grad_norm=1.3017 lr=0.0000 steps_per_s=80.3952 mem/alloc_mib=66.0361 mem/reserved_mib=68.0000
+21:53:33 INFO    qar.training.trainer | step    300 | EVAL val/loss=1.7536 val/mrr=0.9500 val/recall@1=0.9014 val/recall@5=1.0000 val/recall@10=1.0000 val/mean_rank=1.1025
+21:53:33 INFO    train | done: {'best': 0.9091796875, 'steps': 300, 'val/loss': 1.7536087036132812, 'val/mrr': 0.9500325545668602, 'val/recall@1': 0.9013671875, 'val/recall@5': 1.0, 'val/recall@10': 1.0, 'val/mean_rank': 1.1025390625}

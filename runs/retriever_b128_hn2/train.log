@@ -1,0 +1,242 @@
+11:05:14 INFO    train | config: configs\retriever.yaml + ['name=retriever_b128_hn2', 'data.batch_size=128', 'loss.hard_negatives=2']
+11:05:21 INFO    qar.training.trainer | run 'retriever_b128_hn2' | device=cuda (NVIDIA GeForce RTX 5060 Laptop GPU, 8.0 GiB, sm_120) amp=bfloat16
+11:05:21 INFO    qar.training.trainer | trainable parameters: 45.97M
+11:05:21 INFO    qar.tasks.retriever | dedup sampler on: 704201 rows, 638306 distinct questions
+11:06:07 INFO    qar.training.trainer | step    100 | loss=4.9304 nce=4.9304 acc=0.0099 grad_norm=3.1996 lr=0.0000 steps_per_s=2.1935 mem/alloc_mib=6425.4370 mem/reserved_mib=7754.0000
+11:06:51 INFO    qar.training.trainer | step    200 | loss=4.8040 nce=4.8040 acc=0.0174 grad_norm=1.7845 lr=0.0001 steps_per_s=2.2603 mem/alloc_mib=6425.4370 mem/reserved_mib=7754.0000
+11:07:36 INFO    qar.training.trainer | step    300 | loss=4.7214 nce=4.7214 acc=0.0261 grad_norm=2.4070 lr=0.0001 steps_per_s=2.2401 mem/alloc_mib=6425.4370 mem/reserved_mib=7754.0000
+11:08:28 INFO    qar.training.trainer | step    400 | loss=4.6118 nce=4.6118 acc=0.0354 grad_norm=3.1882 lr=0.0001 steps_per_s=1.9189 mem/alloc_mib=6425.4370 mem/reserved_mib=7754.0000
+11:09:32 INFO    qar.training.trainer | step    500 | loss=4.5111 nce=4.5111 acc=0.0443 grad_norm=3.9612 lr=0.0001 steps_per_s=1.5554 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:10:36 INFO    qar.training.trainer | step    600 | loss=4.3728 nce=4.3728 acc=0.0537 grad_norm=4.3168 lr=0.0002 steps_per_s=1.5615 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:11:42 INFO    qar.training.trainer | step    700 | loss=4.2663 nce=4.2663 acc=0.0647 grad_norm=4.2797 lr=0.0002 steps_per_s=1.5317 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:12:47 INFO    qar.training.trainer | step    800 | loss=4.1613 nce=4.1613 acc=0.0789 grad_norm=4.1648 lr=0.0002 steps_per_s=1.5408 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:13:51 INFO    qar.training.trainer | step    900 | loss=4.0179 nce=4.0179 acc=0.0947 grad_norm=4.1508 lr=0.0002 steps_per_s=1.5449 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:14:53 INFO    qar.training.trainer | step   1000 | loss=3.9337 nce=3.9337 acc=0.0987 grad_norm=4.0595 lr=0.0003 steps_per_s=1.6091 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:14:59 INFO    qar.training.trainer | step   1000 | EVAL val/loss=3.8032 val/mrr=0.2377 val/recall@1=0.1145 val/recall@5=0.3523 val/recall@10=0.4976 val/mean_rank=21.4849
+11:15:00 INFO    qar.training.trainer | new best val/recall@1=0.1145
+11:16:05 INFO    qar.training.trainer | step   1100 | loss=3.8311 nce=3.8311 acc=0.1173 grad_norm=3.9486 lr=0.0003 steps_per_s=1.3898 mem/alloc_mib=6449.1396 mem/reserved_mib=7754.0000
+11:17:08 INFO    qar.training.trainer | step   1200 | loss=3.7371 nce=3.7371 acc=0.1227 grad_norm=3.7951 lr=0.0003 steps_per_s=1.5949 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:18:10 INFO    qar.training.trainer | step   1300 | loss=3.6826 nce=3.6826 acc=0.1355 grad_norm=3.6360 lr=0.0003 steps_per_s=1.6114 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:19:11 INFO    qar.training.trainer | step   1400 | loss=3.5967 nce=3.5967 acc=0.1443 grad_norm=3.5668 lr=0.0003 steps_per_s=1.6379 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:20:18 INFO    qar.training.trainer | step   1500 | loss=3.5625 nce=3.5625 acc=0.1545 grad_norm=3.5316 lr=0.0003 steps_per_s=1.4924 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:21:31 INFO    qar.training.trainer | step   1600 | loss=3.4724 nce=3.4724 acc=0.1546 grad_norm=3.4134 lr=0.0003 steps_per_s=1.3679 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:22:41 INFO    qar.training.trainer | step   1700 | loss=3.4295 nce=3.4295 acc=0.1646 grad_norm=3.3359 lr=0.0003 steps_per_s=1.4255 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:23:45 INFO    qar.training.trainer | step   1800 | loss=3.4109 nce=3.4109 acc=0.1701 grad_norm=3.2346 lr=0.0003 steps_per_s=1.5810 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:24:43 INFO    qar.training.trainer | step   1900 | loss=3.3563 nce=3.3563 acc=0.1780 grad_norm=3.1769 lr=0.0003 steps_per_s=1.7158 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:25:39 INFO    qar.training.trainer | step   2000 | loss=3.3418 nce=3.3418 acc=0.1804 grad_norm=3.1123 lr=0.0003 steps_per_s=1.7928 mem/alloc_mib=6451.2905 mem/reserved_mib=7754.0000
+11:25:44 INFO    qar.training.trainer | step   2000 | EVAL val/loss=3.2748 val/mrr=0.3334 val/recall@1=0.1812 val/recall@5=0.5095 val/recall@10=0.6555 val/mean_rank=14.2766
+11:25:45 INFO    qar.training.trainer | new best val/recall@1=0.1812
+11:26:48 INFO    qar.training.trainer | step   2100 | loss=3.3281 nce=3.3281 acc=0.1786 grad_norm=3.0406 lr=0.0003 steps_per_s=1.4440 mem/alloc_mib=6526.0908 mem/reserved_mib=7754.0000
+11:27:49 INFO    qar.training.trainer | step   2200 | loss=3.2589 nce=3.2589 acc=0.1919 grad_norm=3.0123 lr=0.0003 steps_per_s=1.6393 mem/alloc_mib=6526.0908 mem/reserved_mib=7754.0000
+11:28:49 INFO    qar.training.trainer | step   2300 | loss=3.2655 nce=3.2655 acc=0.1898 grad_norm=2.9893 lr=0.0003 steps_per_s=1.6806 mem/alloc_mib=6526.0908 mem/reserved_mib=7754.0000
+13:38:55 INFO    train | config: configs\retriever.yaml + ['name=retriever_b128_hn2', 'data.batch_size=128', 'loss.hard_negatives=2']
+13:38:59 INFO    qar.training.trainer | run 'retriever_b128_hn2' | device=cuda (NVIDIA GeForce RTX 5060 Laptop GPU, 8.0 GiB, sm_120) amp=bfloat16
+13:38:59 INFO    qar.training.trainer | trainable parameters: 45.97M
+13:38:59 INFO    qar.training.checkpoint | resumed from step_0002000.pt at step 2000
+13:39:00 INFO    qar.tasks.retriever | dedup sampler on: 704201 rows, 638306 distinct questions
+13:39:37 INFO    qar.training.trainer | step   2100 | loss=3.3112 nce=3.3112 acc=0.1829 grad_norm=3.1141 lr=0.0003 steps_per_s=2.7280 mem/alloc_mib=6423.8882 mem/reserved_mib=7814.0000
+13:40:11 INFO    qar.training.trainer | step   2200 | loss=3.2476 nce=3.2476 acc=0.1877 grad_norm=3.0872 lr=0.0003 steps_per_s=2.8964 mem/alloc_mib=6423.8882 mem/reserved_mib=7814.0000
+13:40:46 INFO    qar.training.trainer | step   2300 | loss=3.2000 nce=3.2000 acc=0.1975 grad_norm=3.0542 lr=0.0003 steps_per_s=2.8518 mem/alloc_mib=6423.8882 mem/reserved_mib=7814.0000
+13:41:24 INFO    qar.training.trainer | step   2400 | loss=3.1770 nce=3.1770 acc=0.2006 grad_norm=3.0276 lr=0.0003 steps_per_s=2.6571 mem/alloc_mib=6423.8882 mem/reserved_mib=7814.0000
+13:42:29 INFO    qar.training.trainer | step   2500 | loss=3.1426 nce=3.1426 acc=0.2061 grad_norm=2.9827 lr=0.0003 steps_per_s=1.5390 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:43:30 INFO    qar.training.trainer | step   2600 | loss=3.0785 nce=3.0785 acc=0.2179 grad_norm=2.9978 lr=0.0003 steps_per_s=1.6417 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:44:28 INFO    qar.training.trainer | step   2700 | loss=3.0687 nce=3.0687 acc=0.2205 grad_norm=3.0222 lr=0.0003 steps_per_s=1.7221 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:45:27 INFO    qar.training.trainer | step   2800 | loss=3.0162 nce=3.0162 acc=0.2251 grad_norm=3.0578 lr=0.0003 steps_per_s=1.6897 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:46:25 INFO    qar.training.trainer | step   2900 | loss=2.9499 nce=2.9499 acc=0.2416 grad_norm=3.0631 lr=0.0003 steps_per_s=1.7304 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:47:21 INFO    qar.training.trainer | step   3000 | loss=2.8902 nce=2.8902 acc=0.2503 grad_norm=3.1723 lr=0.0003 steps_per_s=1.7782 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:47:29 INFO    qar.training.trainer | step   3000 | EVAL val/loss=3.1251 val/mrr=0.3664 val/recall@1=0.2090 val/recall@5=0.5652 val/recall@10=0.6919 val/mean_rank=12.5835
+13:47:29 INFO    qar.training.trainer | new best val/recall@1=0.2090
+13:48:30 INFO    qar.training.trainer | step   3100 | loss=2.8878 nce=2.8878 acc=0.2500 grad_norm=3.1740 lr=0.0003 steps_per_s=1.4482 mem/alloc_mib=6447.5908 mem/reserved_mib=7814.0000
+13:49:27 INFO    qar.training.trainer | step   3200 | loss=2.8093 nce=2.8093 acc=0.2590 grad_norm=3.2313 lr=0.0003 steps_per_s=1.7604 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:50:23 INFO    qar.training.trainer | step   3300 | loss=2.7736 nce=2.7736 acc=0.2730 grad_norm=3.2709 lr=0.0003 steps_per_s=1.7948 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:51:20 INFO    qar.training.trainer | step   3400 | loss=2.7118 nce=2.7118 acc=0.2812 grad_norm=3.3637 lr=0.0003 steps_per_s=1.7516 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:52:23 INFO    qar.training.trainer | step   3500 | loss=2.6958 nce=2.6958 acc=0.2848 grad_norm=3.4463 lr=0.0003 steps_per_s=1.5787 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:53:21 INFO    qar.training.trainer | step   3600 | loss=2.6479 nce=2.6479 acc=0.2961 grad_norm=3.4713 lr=0.0003 steps_per_s=1.7138 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:54:21 INFO    qar.training.trainer | step   3700 | loss=2.6147 nce=2.6147 acc=0.3034 grad_norm=3.4948 lr=0.0003 steps_per_s=1.6774 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:55:21 INFO    qar.training.trainer | step   3800 | loss=2.6401 nce=2.6401 acc=0.3016 grad_norm=3.4502 lr=0.0003 steps_per_s=1.6711 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:56:23 INFO    qar.training.trainer | step   3900 | loss=2.6182 nce=2.6182 acc=0.3048 grad_norm=3.4956 lr=0.0003 steps_per_s=1.6134 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:57:24 INFO    qar.training.trainer | step   4000 | loss=2.5927 nce=2.5927 acc=0.3148 grad_norm=3.5612 lr=0.0003 steps_per_s=1.6414 mem/alloc_mib=6449.3667 mem/reserved_mib=7814.0000
+13:57:32 INFO    qar.training.trainer | step   4000 | EVAL val/loss=3.1549 val/mrr=0.3768 val/recall@1=0.2185 val/recall@5=0.5684 val/recall@10=0.7019 val/mean_rank=12.0962
+13:57:33 INFO    qar.training.trainer | new best val/recall@1=0.2185
+13:58:35 INFO    qar.training.trainer | step   4100 | loss=3.1045 nce=3.1045 acc=0.2143 grad_norm=2.9165 lr=0.0003 steps_per_s=1.4040 mem/alloc_mib=6524.4795 mem/reserved_mib=7814.0000
+13:59:36 INFO    qar.training.trainer | step   4200 | loss=3.0187 nce=3.0187 acc=0.2255 grad_norm=2.7460 lr=0.0003 steps_per_s=1.6365 mem/alloc_mib=6524.4795 mem/reserved_mib=7814.0000
+14:00:36 INFO    qar.training.trainer | step   4300 | loss=3.0196 nce=3.0196 acc=0.2226 grad_norm=2.7308 lr=0.0003 steps_per_s=1.6613 mem/alloc_mib=6524.4795 mem/reserved_mib=7814.0000
+14:01:36 INFO    qar.training.trainer | step   4400 | loss=2.9943 nce=2.9943 acc=0.2248 grad_norm=2.6731 lr=0.0003 steps_per_s=1.6746 mem/alloc_mib=6524.4795 mem/reserved_mib=7814.0000
+14:02:37 INFO    qar.training.trainer | step   4500 | loss=2.9889 nce=2.9889 acc=0.2268 grad_norm=2.6534 lr=0.0003 steps_per_s=1.6414 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:03:36 INFO    qar.training.trainer | step   4600 | loss=2.9404 nce=2.9404 acc=0.2373 grad_norm=2.6079 lr=0.0003 steps_per_s=1.7013 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:04:36 INFO    qar.training.trainer | step   4700 | loss=2.9377 nce=2.9377 acc=0.2358 grad_norm=2.6156 lr=0.0003 steps_per_s=1.6614 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:05:40 INFO    qar.training.trainer | step   4800 | loss=2.9660 nce=2.9660 acc=0.2330 grad_norm=2.5972 lr=0.0003 steps_per_s=1.5697 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:06:40 INFO    qar.training.trainer | step   4900 | loss=2.9459 nce=2.9459 acc=0.2343 grad_norm=2.5539 lr=0.0003 steps_per_s=1.6609 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:07:42 INFO    qar.training.trainer | step   5000 | loss=2.9027 nce=2.9027 acc=0.2439 grad_norm=2.5213 lr=0.0003 steps_per_s=1.6182 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:07:51 INFO    qar.training.trainer | step   5000 | EVAL val/loss=2.8592 val/mrr=0.4154 val/recall@1=0.2527 val/recall@5=0.6182 val/recall@10=0.7407 val/mean_rank=10.5903
+14:07:51 INFO    qar.training.trainer | new best val/recall@1=0.2527
+14:08:53 INFO    qar.training.trainer | step   5100 | loss=2.9053 nce=2.9053 acc=0.2429 grad_norm=2.5327 lr=0.0003 steps_per_s=1.4001 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:09:55 INFO    qar.training.trainer | step   5200 | loss=2.8532 nce=2.8532 acc=0.2462 grad_norm=2.5025 lr=0.0003 steps_per_s=1.6095 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:10:56 INFO    qar.training.trainer | step   5300 | loss=2.8486 nce=2.8486 acc=0.2494 grad_norm=2.5547 lr=0.0003 steps_per_s=1.6428 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:11:58 INFO    qar.training.trainer | step   5400 | loss=2.8438 nce=2.8438 acc=0.2500 grad_norm=2.5174 lr=0.0003 steps_per_s=1.6056 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:12:56 INFO    qar.training.trainer | step   5500 | loss=2.8684 nce=2.8684 acc=0.2462 grad_norm=2.4614 lr=0.0003 steps_per_s=1.7284 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:13:56 INFO    qar.training.trainer | step   5600 | loss=2.8526 nce=2.8526 acc=0.2462 grad_norm=2.4447 lr=0.0003 steps_per_s=1.6692 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:14:56 INFO    qar.training.trainer | step   5700 | loss=2.8436 nce=2.8436 acc=0.2446 grad_norm=2.4568 lr=0.0003 steps_per_s=1.6636 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:15:59 INFO    qar.training.trainer | step   5800 | loss=2.8198 nce=2.8198 acc=0.2541 grad_norm=2.4468 lr=0.0003 steps_per_s=1.6034 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:17:00 INFO    qar.training.trainer | step   5900 | loss=2.8315 nce=2.8315 acc=0.2547 grad_norm=2.4202 lr=0.0003 steps_per_s=1.6189 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:18:01 INFO    qar.training.trainer | step   6000 | loss=2.8069 nce=2.8069 acc=0.2520 grad_norm=2.3912 lr=0.0003 steps_per_s=1.6363 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:18:10 INFO    qar.training.trainer | step   6000 | EVAL val/loss=2.7762 val/mrr=0.4313 val/recall@1=0.2644 val/recall@5=0.6411 val/recall@10=0.7659 val/mean_rank=9.8547
+14:18:11 INFO    qar.training.trainer | new best val/recall@1=0.2644
+14:19:13 INFO    qar.training.trainer | step   6100 | loss=2.7874 nce=2.7874 acc=0.2626 grad_norm=2.4052 lr=0.0003 steps_per_s=1.3936 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:20:15 INFO    qar.training.trainer | step   6200 | loss=2.7927 nce=2.7927 acc=0.2583 grad_norm=2.3807 lr=0.0003 steps_per_s=1.6183 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:21:17 INFO    qar.training.trainer | step   6300 | loss=2.7873 nce=2.7873 acc=0.2577 grad_norm=2.3687 lr=0.0002 steps_per_s=1.6084 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:22:18 INFO    qar.training.trainer | step   6400 | loss=2.8035 nce=2.8035 acc=0.2570 grad_norm=2.3719 lr=0.0002 steps_per_s=1.6416 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:23:19 INFO    qar.training.trainer | step   6500 | loss=2.7979 nce=2.7979 acc=0.2577 grad_norm=2.3827 lr=0.0002 steps_per_s=1.6373 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:24:24 INFO    qar.training.trainer | step   6600 | loss=2.7645 nce=2.7645 acc=0.2608 grad_norm=2.3507 lr=0.0002 steps_per_s=1.5428 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:25:25 INFO    qar.training.trainer | step   6700 | loss=2.7641 nce=2.7641 acc=0.2654 grad_norm=2.3628 lr=0.0002 steps_per_s=1.6471 mem/alloc_mib=6547.4785 mem/reserved_mib=7814.0000
+14:26:28 INFO    qar.training.trainer | step   6800 | loss=2.7808 nce=2.7808 acc=0.2559 grad_norm=2.3321 lr=0.0002 steps_per_s=1.5889 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:27:27 INFO    qar.training.trainer | step   6900 | loss=2.7508 nce=2.7508 acc=0.2620 grad_norm=2.3283 lr=0.0002 steps_per_s=1.6917 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:28:27 INFO    qar.training.trainer | step   7000 | loss=2.7492 nce=2.7492 acc=0.2599 grad_norm=2.3164 lr=0.0002 steps_per_s=1.6557 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:28:36 INFO    qar.training.trainer | step   7000 | EVAL val/loss=2.7155 val/mrr=0.4397 val/recall@1=0.2722 val/recall@5=0.6553 val/recall@10=0.7756 val/mean_rank=9.3894
+14:28:37 INFO    qar.training.trainer | new best val/recall@1=0.2722
+14:29:38 INFO    qar.training.trainer | step   7100 | loss=2.7463 nce=2.7463 acc=0.2606 grad_norm=2.2848 lr=0.0002 steps_per_s=1.4082 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:30:38 INFO    qar.training.trainer | step   7200 | loss=2.7364 nce=2.7364 acc=0.2691 grad_norm=2.3137 lr=0.0002 steps_per_s=1.6645 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:31:40 INFO    qar.training.trainer | step   7300 | loss=2.7161 nce=2.7161 acc=0.2661 grad_norm=2.2995 lr=0.0002 steps_per_s=1.6173 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:32:42 INFO    qar.training.trainer | step   7400 | loss=2.7380 nce=2.7380 acc=0.2673 grad_norm=2.2963 lr=0.0002 steps_per_s=1.6027 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:33:40 INFO    qar.training.trainer | step   7500 | loss=2.7303 nce=2.7303 acc=0.2673 grad_norm=2.2972 lr=0.0002 steps_per_s=1.7256 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:34:37 INFO    qar.training.trainer | step   7600 | loss=2.4633 nce=2.4633 acc=0.3177 grad_norm=2.4912 lr=0.0002 steps_per_s=1.7667 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:35:33 INFO    qar.training.trainer | step   7700 | loss=2.4150 nce=2.4150 acc=0.3273 grad_norm=2.5591 lr=0.0002 steps_per_s=1.7829 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:36:32 INFO    qar.training.trainer | step   7800 | loss=2.4343 nce=2.4343 acc=0.3260 grad_norm=2.5841 lr=0.0002 steps_per_s=1.7039 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:37:29 INFO    qar.training.trainer | step   7900 | loss=2.4358 nce=2.4358 acc=0.3286 grad_norm=2.6205 lr=0.0002 steps_per_s=1.7402 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:38:28 INFO    qar.training.trainer | step   8000 | loss=2.4355 nce=2.4355 acc=0.3220 grad_norm=2.6042 lr=0.0002 steps_per_s=1.7019 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:38:36 INFO    qar.training.trainer | step   8000 | EVAL val/loss=2.7417 val/mrr=0.4363 val/recall@1=0.2629 val/recall@5=0.6604 val/recall@10=0.7815 val/mean_rank=9.4202
+14:39:31 INFO    qar.training.trainer | step   8100 | loss=2.4708 nce=2.4708 acc=0.3220 grad_norm=2.6077 lr=0.0002 steps_per_s=1.5797 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:40:30 INFO    qar.training.trainer | step   8200 | loss=2.4696 nce=2.4696 acc=0.3205 grad_norm=2.6130 lr=0.0002 steps_per_s=1.7081 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:41:28 INFO    qar.training.trainer | step   8300 | loss=2.4501 nce=2.4501 acc=0.3203 grad_norm=2.6467 lr=0.0002 steps_per_s=1.7170 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:42:24 INFO    qar.training.trainer | step   8400 | loss=2.4426 nce=2.4426 acc=0.3255 grad_norm=2.6581 lr=0.0002 steps_per_s=1.7799 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:43:21 INFO    qar.training.trainer | step   8500 | loss=2.4369 nce=2.4369 acc=0.3235 grad_norm=2.6534 lr=0.0002 steps_per_s=1.7738 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:44:19 INFO    qar.training.trainer | step   8600 | loss=2.4487 nce=2.4487 acc=0.3198 grad_norm=2.6315 lr=0.0002 steps_per_s=1.7137 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:45:18 INFO    qar.training.trainer | step   8700 | loss=2.4513 nce=2.4513 acc=0.3197 grad_norm=2.6516 lr=0.0002 steps_per_s=1.7022 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:46:14 INFO    qar.training.trainer | step   8800 | loss=2.4318 nce=2.4318 acc=0.3245 grad_norm=2.6244 lr=0.0002 steps_per_s=1.7687 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:47:11 INFO    qar.training.trainer | step   8900 | loss=2.4256 nce=2.4256 acc=0.3284 grad_norm=2.6051 lr=0.0002 steps_per_s=1.7498 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:48:09 INFO    qar.training.trainer | step   9000 | loss=2.4244 nce=2.4244 acc=0.3301 grad_norm=2.5922 lr=0.0002 steps_per_s=1.7252 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:48:18 INFO    qar.training.trainer | step   9000 | EVAL val/loss=2.7103 val/mrr=0.4414 val/recall@1=0.2661 val/recall@5=0.6663 val/recall@10=0.7832 val/mean_rank=9.1821
+14:49:13 INFO    qar.training.trainer | step   9100 | loss=2.4249 nce=2.4249 acc=0.3232 grad_norm=2.6209 lr=0.0002 steps_per_s=1.5720 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:50:11 INFO    qar.training.trainer | step   9200 | loss=2.4618 nce=2.4618 acc=0.3225 grad_norm=2.6001 lr=0.0002 steps_per_s=1.7150 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:51:09 INFO    qar.training.trainer | step   9300 | loss=2.4080 nce=2.4080 acc=0.3313 grad_norm=2.6112 lr=0.0002 steps_per_s=1.7425 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:52:03 INFO    qar.training.trainer | step   9400 | loss=2.4197 nce=2.4197 acc=0.3218 grad_norm=2.6155 lr=0.0002 steps_per_s=1.8400 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:52:58 INFO    qar.training.trainer | step   9500 | loss=2.4308 nce=2.4308 acc=0.3231 grad_norm=2.5955 lr=0.0002 steps_per_s=1.8270 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:53:54 INFO    qar.training.trainer | step   9600 | loss=2.4392 nce=2.4392 acc=0.3224 grad_norm=2.6157 lr=0.0002 steps_per_s=1.7644 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:54:51 INFO    qar.training.trainer | step   9700 | loss=2.4486 nce=2.4486 acc=0.3144 grad_norm=2.5706 lr=0.0002 steps_per_s=1.7654 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:55:51 INFO    qar.training.trainer | step   9800 | loss=2.4206 nce=2.4206 acc=0.3304 grad_norm=2.5932 lr=0.0002 steps_per_s=1.6800 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:56:50 INFO    qar.training.trainer | step   9900 | loss=2.4049 nce=2.4049 acc=0.3305 grad_norm=2.6053 lr=0.0002 steps_per_s=1.6787 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:57:50 INFO    qar.training.trainer | step  10000 | loss=2.4391 nce=2.4391 acc=0.3216 grad_norm=2.5844 lr=0.0002 steps_per_s=1.6754 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:57:58 INFO    qar.training.trainer | step  10000 | EVAL val/loss=2.6698 val/mrr=0.4448 val/recall@1=0.2681 val/recall@5=0.6709 val/recall@10=0.7988 val/mean_rank=8.9685
+14:58:55 INFO    qar.training.trainer | step  10100 | loss=2.4198 nce=2.4198 acc=0.3197 grad_norm=2.5748 lr=0.0002 steps_per_s=1.5431 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+14:59:51 INFO    qar.training.trainer | step  10200 | loss=2.4419 nce=2.4419 acc=0.3255 grad_norm=2.5558 lr=0.0002 steps_per_s=1.7900 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:00:46 INFO    qar.training.trainer | step  10300 | loss=2.4217 nce=2.4217 acc=0.3208 grad_norm=2.5869 lr=0.0002 steps_per_s=1.7907 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:01:45 INFO    qar.training.trainer | step  10400 | loss=2.4405 nce=2.4405 acc=0.3211 grad_norm=2.5699 lr=0.0002 steps_per_s=1.7043 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:02:44 INFO    qar.training.trainer | step  10500 | loss=2.4188 nce=2.4188 acc=0.3276 grad_norm=2.5614 lr=0.0002 steps_per_s=1.7063 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:03:39 INFO    qar.training.trainer | step  10600 | loss=2.4257 nce=2.4257 acc=0.3263 grad_norm=2.5609 lr=0.0001 steps_per_s=1.8236 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:04:36 INFO    qar.training.trainer | step  10700 | loss=2.3959 nce=2.3959 acc=0.3262 grad_norm=2.6116 lr=0.0001 steps_per_s=1.7406 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:05:34 INFO    qar.training.trainer | step  10800 | loss=2.4209 nce=2.4209 acc=0.3253 grad_norm=2.5226 lr=0.0001 steps_per_s=1.7106 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:06:31 INFO    qar.training.trainer | step  10900 | loss=2.4208 nce=2.4208 acc=0.3201 grad_norm=2.5441 lr=0.0001 steps_per_s=1.7708 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:07:30 INFO    qar.training.trainer | step  11000 | loss=2.4215 nce=2.4215 acc=0.3298 grad_norm=2.5553 lr=0.0001 steps_per_s=1.6985 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:07:38 INFO    qar.training.trainer | step  11000 | EVAL val/loss=2.6466 val/mrr=0.4522 val/recall@1=0.2776 val/recall@5=0.6819 val/recall@10=0.7966 val/mean_rank=8.8113
+15:07:38 INFO    qar.training.trainer | new best val/recall@1=0.2776
+15:08:35 INFO    qar.training.trainer | step  11100 | loss=2.4071 nce=2.4071 acc=0.3269 grad_norm=2.5745 lr=0.0001 steps_per_s=1.5455 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:09:32 INFO    qar.training.trainer | step  11200 | loss=2.3845 nce=2.3845 acc=0.3305 grad_norm=2.5265 lr=0.0001 steps_per_s=1.7505 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:10:28 INFO    qar.training.trainer | step  11300 | loss=2.3929 nce=2.3929 acc=0.3272 grad_norm=2.5477 lr=0.0001 steps_per_s=1.7826 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:11:25 INFO    qar.training.trainer | step  11400 | loss=2.3889 nce=2.3889 acc=0.3332 grad_norm=2.5613 lr=0.0001 steps_per_s=1.7391 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:12:21 INFO    qar.training.trainer | step  11500 | loss=2.4177 nce=2.4177 acc=0.3203 grad_norm=2.5669 lr=0.0001 steps_per_s=1.7809 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:13:18 INFO    qar.training.trainer | step  11600 | loss=2.3890 nce=2.3890 acc=0.3284 grad_norm=2.5313 lr=0.0001 steps_per_s=1.7708 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:14:13 INFO    qar.training.trainer | step  11700 | loss=2.3590 nce=2.3590 acc=0.3411 grad_norm=2.5483 lr=0.0001 steps_per_s=1.8213 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:15:10 INFO    qar.training.trainer | step  11800 | loss=2.4031 nce=2.4031 acc=0.3246 grad_norm=2.5625 lr=0.0001 steps_per_s=1.7599 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:16:08 INFO    qar.training.trainer | step  11900 | loss=2.3953 nce=2.3953 acc=0.3285 grad_norm=2.5341 lr=0.0001 steps_per_s=1.7243 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:17:05 INFO    qar.training.trainer | step  12000 | loss=2.3779 nce=2.3779 acc=0.3309 grad_norm=2.5443 lr=0.0001 steps_per_s=1.7480 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:17:13 INFO    qar.training.trainer | step  12000 | EVAL val/loss=2.6085 val/mrr=0.4624 val/recall@1=0.2886 val/recall@5=0.6821 val/recall@10=0.7981 val/mean_rank=8.3833
+15:17:14 INFO    qar.training.trainer | new best val/recall@1=0.2886
+15:18:10 INFO    qar.training.trainer | step  12100 | loss=2.4165 nce=2.4165 acc=0.3207 grad_norm=2.5282 lr=0.0001 steps_per_s=1.5257 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:19:09 INFO    qar.training.trainer | step  12200 | loss=2.3748 nce=2.3748 acc=0.3365 grad_norm=2.5794 lr=0.0001 steps_per_s=1.7174 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:20:07 INFO    qar.training.trainer | step  12300 | loss=2.3921 nce=2.3921 acc=0.3338 grad_norm=2.5419 lr=0.0001 steps_per_s=1.7185 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:21:04 INFO    qar.training.trainer | step  12400 | loss=2.3781 nce=2.3781 acc=0.3321 grad_norm=2.5178 lr=0.0001 steps_per_s=1.7625 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:22:00 INFO    qar.training.trainer | step  12500 | loss=2.3819 nce=2.3819 acc=0.3336 grad_norm=2.4998 lr=0.0001 steps_per_s=1.7856 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:22:56 INFO    qar.training.trainer | step  12600 | loss=2.3555 nce=2.3555 acc=0.3381 grad_norm=2.5565 lr=0.0001 steps_per_s=1.7623 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:23:55 INFO    qar.training.trainer | step  12700 | loss=2.3978 nce=2.3978 acc=0.3272 grad_norm=2.5396 lr=0.0001 steps_per_s=1.6937 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:24:52 INFO    qar.training.trainer | step  12800 | loss=2.3675 nce=2.3675 acc=0.3397 grad_norm=2.5262 lr=0.0001 steps_per_s=1.7530 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:25:50 INFO    qar.training.trainer | step  12900 | loss=2.3891 nce=2.3891 acc=0.3315 grad_norm=2.5343 lr=0.0001 steps_per_s=1.7348 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:26:48 INFO    qar.training.trainer | step  13000 | loss=2.3789 nce=2.3789 acc=0.3293 grad_norm=2.5164 lr=0.0001 steps_per_s=1.7185 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:26:56 INFO    qar.training.trainer | step  13000 | EVAL val/loss=2.5886 val/mrr=0.4618 val/recall@1=0.2847 val/recall@5=0.6899 val/recall@10=0.8081 val/mean_rank=8.2827
+15:27:54 INFO    qar.training.trainer | step  13100 | loss=2.0555 nce=2.0555 acc=0.4061 grad_norm=2.6925 lr=0.0001 steps_per_s=1.5212 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:28:53 INFO    qar.training.trainer | step  13200 | loss=2.0846 nce=2.0846 acc=0.3995 grad_norm=2.8055 lr=0.0001 steps_per_s=1.6989 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:29:51 INFO    qar.training.trainer | step  13300 | loss=2.0774 nce=2.0774 acc=0.4047 grad_norm=2.8593 lr=0.0001 steps_per_s=1.7125 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:30:48 INFO    qar.training.trainer | step  13400 | loss=2.0974 nce=2.0974 acc=0.4014 grad_norm=2.8684 lr=0.0001 steps_per_s=1.7732 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:31:44 INFO    qar.training.trainer | step  13500 | loss=2.0691 nce=2.0691 acc=0.4095 grad_norm=2.9109 lr=0.0001 steps_per_s=1.7841 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:32:42 INFO    qar.training.trainer | step  13600 | loss=2.0728 nce=2.0728 acc=0.4042 grad_norm=2.9405 lr=0.0001 steps_per_s=1.7091 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:33:37 INFO    qar.training.trainer | step  13700 | loss=2.0718 nce=2.0718 acc=0.4029 grad_norm=2.9616 lr=0.0001 steps_per_s=1.8380 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:34:32 INFO    qar.training.trainer | step  13800 | loss=2.0551 nce=2.0551 acc=0.4044 grad_norm=2.9728 lr=0.0001 steps_per_s=1.7883 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:35:30 INFO    qar.training.trainer | step  13900 | loss=2.0799 nce=2.0799 acc=0.4055 grad_norm=2.9639 lr=0.0001 steps_per_s=1.7450 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:36:27 INFO    qar.training.trainer | step  14000 | loss=2.0763 nce=2.0763 acc=0.4043 grad_norm=2.9421 lr=0.0001 steps_per_s=1.7410 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:36:35 INFO    qar.training.trainer | step  14000 | EVAL val/loss=2.7037 val/mrr=0.4583 val/recall@1=0.2878 val/recall@5=0.6782 val/recall@10=0.8000 val/mean_rank=8.7383
+15:37:34 INFO    qar.training.trainer | step  14100 | loss=2.0902 nce=2.0902 acc=0.4016 grad_norm=2.9908 lr=0.0001 steps_per_s=1.4930 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:38:31 INFO    qar.training.trainer | step  14200 | loss=2.0808 nce=2.0808 acc=0.4062 grad_norm=2.9895 lr=0.0001 steps_per_s=1.7759 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:39:27 INFO    qar.training.trainer | step  14300 | loss=2.0614 nce=2.0614 acc=0.4066 grad_norm=3.0085 lr=0.0001 steps_per_s=1.7668 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:40:22 INFO    qar.training.trainer | step  14400 | loss=2.1017 nce=2.1017 acc=0.4040 grad_norm=3.0310 lr=0.0001 steps_per_s=1.8077 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:41:22 INFO    qar.training.trainer | step  14500 | loss=2.0747 nce=2.0747 acc=0.4069 grad_norm=3.0014 lr=0.0001 steps_per_s=1.6876 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:42:18 INFO    qar.training.trainer | step  14600 | loss=2.0752 nce=2.0752 acc=0.4038 grad_norm=3.0442 lr=0.0001 steps_per_s=1.7797 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:43:16 INFO    qar.training.trainer | step  14700 | loss=2.0878 nce=2.0878 acc=0.4052 grad_norm=2.9870 lr=0.0001 steps_per_s=1.7355 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:44:12 INFO    qar.training.trainer | step  14800 | loss=2.0583 nce=2.0583 acc=0.4105 grad_norm=3.0047 lr=0.0001 steps_per_s=1.7672 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:45:10 INFO    qar.training.trainer | step  14900 | loss=2.0643 nce=2.0643 acc=0.4096 grad_norm=3.0190 lr=0.0001 steps_per_s=1.7245 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:46:08 INFO    qar.training.trainer | step  15000 | loss=2.0832 nce=2.0832 acc=0.4055 grad_norm=3.0581 lr=0.0000 steps_per_s=1.7329 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:46:16 INFO    qar.training.trainer | step  15000 | EVAL val/loss=2.6794 val/mrr=0.4588 val/recall@1=0.2849 val/recall@5=0.6877 val/recall@10=0.7996 val/mean_rank=8.6184
+15:47:13 INFO    qar.training.trainer | step  15100 | loss=2.0724 nce=2.0724 acc=0.4058 grad_norm=3.0543 lr=0.0000 steps_per_s=1.5442 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:48:10 INFO    qar.training.trainer | step  15200 | loss=2.0798 nce=2.0798 acc=0.4000 grad_norm=3.0476 lr=0.0000 steps_per_s=1.7444 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:49:06 INFO    qar.training.trainer | step  15300 | loss=2.0669 nce=2.0669 acc=0.4021 grad_norm=3.0417 lr=0.0000 steps_per_s=1.7815 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:50:03 INFO    qar.training.trainer | step  15400 | loss=2.0807 nce=2.0807 acc=0.4029 grad_norm=3.0440 lr=0.0000 steps_per_s=1.7639 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:51:00 INFO    qar.training.trainer | step  15500 | loss=2.0755 nce=2.0755 acc=0.4069 grad_norm=3.0588 lr=0.0000 steps_per_s=1.7483 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:51:55 INFO    qar.training.trainer | step  15600 | loss=2.0694 nce=2.0694 acc=0.3974 grad_norm=3.0823 lr=0.0000 steps_per_s=1.8015 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:52:51 INFO    qar.training.trainer | step  15700 | loss=2.0667 nce=2.0667 acc=0.4038 grad_norm=3.0598 lr=0.0000 steps_per_s=1.7869 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:53:47 INFO    qar.training.trainer | step  15800 | loss=2.0579 nce=2.0579 acc=0.4080 grad_norm=3.0500 lr=0.0000 steps_per_s=1.7860 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:54:46 INFO    qar.training.trainer | step  15900 | loss=2.0777 nce=2.0777 acc=0.4012 grad_norm=3.0740 lr=0.0000 steps_per_s=1.7162 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:55:42 INFO    qar.training.trainer | step  16000 | loss=2.0691 nce=2.0691 acc=0.4035 grad_norm=3.0753 lr=0.0000 steps_per_s=1.7749 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:55:50 INFO    qar.training.trainer | step  16000 | EVAL val/loss=2.6775 val/mrr=0.4598 val/recall@1=0.2861 val/recall@5=0.6831 val/recall@10=0.7998 val/mean_rank=8.6228
+15:56:48 INFO    qar.training.trainer | step  16100 | loss=2.0595 nce=2.0595 acc=0.4045 grad_norm=3.0461 lr=0.0000 steps_per_s=1.5108 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:57:44 INFO    qar.training.trainer | step  16200 | loss=2.0708 nce=2.0708 acc=0.4030 grad_norm=3.0764 lr=0.0000 steps_per_s=1.7776 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:58:41 INFO    qar.training.trainer | step  16300 | loss=2.0685 nce=2.0685 acc=0.4071 grad_norm=3.0548 lr=0.0000 steps_per_s=1.7787 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+15:59:39 INFO    qar.training.trainer | step  16400 | loss=2.0439 nce=2.0439 acc=0.4088 grad_norm=3.0663 lr=0.0000 steps_per_s=1.7042 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:00:36 INFO    qar.training.trainer | step  16500 | loss=2.0461 nce=2.0461 acc=0.4138 grad_norm=3.0545 lr=0.0000 steps_per_s=1.7693 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:01:35 INFO    qar.training.trainer | step  16600 | loss=2.0825 nce=2.0825 acc=0.4025 grad_norm=3.0791 lr=0.0000 steps_per_s=1.7035 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:02:33 INFO    qar.training.trainer | step  16700 | loss=2.0474 nce=2.0474 acc=0.4080 grad_norm=3.0781 lr=0.0000 steps_per_s=1.7066 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:03:30 INFO    qar.training.trainer | step  16800 | loss=2.0473 nce=2.0473 acc=0.4059 grad_norm=3.0783 lr=0.0000 steps_per_s=1.7532 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:04:27 INFO    qar.training.trainer | step  16900 | loss=2.0696 nce=2.0696 acc=0.4049 grad_norm=3.0843 lr=0.0000 steps_per_s=1.7585 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:05:24 INFO    qar.training.trainer | step  17000 | loss=2.0679 nce=2.0679 acc=0.4016 grad_norm=3.0360 lr=0.0000 steps_per_s=1.7528 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:05:32 INFO    qar.training.trainer | step  17000 | EVAL val/loss=2.6723 val/mrr=0.4591 val/recall@1=0.2859 val/recall@5=0.6877 val/recall@10=0.7998 val/mean_rank=8.5762
+16:06:29 INFO    qar.training.trainer | step  17100 | loss=2.0670 nce=2.0670 acc=0.4034 grad_norm=3.0964 lr=0.0000 steps_per_s=1.5372 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:07:25 INFO    qar.training.trainer | step  17200 | loss=2.0447 nce=2.0447 acc=0.4110 grad_norm=3.0554 lr=0.0000 steps_per_s=1.7951 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:08:21 INFO    qar.training.trainer | step  17300 | loss=2.0765 nce=2.0765 acc=0.4063 grad_norm=3.1044 lr=0.0000 steps_per_s=1.7722 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:09:20 INFO    qar.training.trainer | step  17400 | loss=2.0295 nce=2.0295 acc=0.4126 grad_norm=3.0710 lr=0.0000 steps_per_s=1.7131 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:10:18 INFO    qar.training.trainer | step  17500 | loss=2.0560 nce=2.0560 acc=0.4062 grad_norm=3.0802 lr=0.0000 steps_per_s=1.7188 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:11:12 INFO    qar.training.trainer | step  17600 | loss=2.0414 nce=2.0414 acc=0.4120 grad_norm=3.0747 lr=0.0000 steps_per_s=1.8602 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:12:07 INFO    qar.training.trainer | step  17700 | loss=2.0468 nce=2.0468 acc=0.4156 grad_norm=3.0921 lr=0.0000 steps_per_s=1.7988 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:13:03 INFO    qar.training.trainer | step  17800 | loss=2.0600 nce=2.0600 acc=0.4138 grad_norm=3.1080 lr=0.0000 steps_per_s=1.7840 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:14:01 INFO    qar.training.trainer | step  17900 | loss=2.0522 nce=2.0522 acc=0.4095 grad_norm=3.1078 lr=0.0000 steps_per_s=1.7378 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:14:58 INFO    qar.training.trainer | step  18000 | loss=2.0668 nce=2.0668 acc=0.4071 grad_norm=3.1089 lr=0.0000 steps_per_s=1.7530 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:15:06 INFO    qar.training.trainer | step  18000 | EVAL val/loss=2.6679 val/mrr=0.4588 val/recall@1=0.2810 val/recall@5=0.6851 val/recall@10=0.8025 val/mean_rank=8.5583
+16:16:06 INFO    qar.training.trainer | step  18100 | loss=2.0413 nce=2.0413 acc=0.4116 grad_norm=3.0992 lr=0.0000 steps_per_s=1.4765 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:17:02 INFO    qar.training.trainer | step  18200 | loss=2.0629 nce=2.0629 acc=0.4055 grad_norm=3.0991 lr=0.0000 steps_per_s=1.7783 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:17:57 INFO    qar.training.trainer | step  18300 | loss=2.0441 nce=2.0441 acc=0.4111 grad_norm=3.0734 lr=0.0000 steps_per_s=1.8006 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:18:56 INFO    qar.training.trainer | step  18400 | loss=2.0401 nce=2.0401 acc=0.4081 grad_norm=3.1107 lr=0.0000 steps_per_s=1.7150 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:19:55 INFO    qar.training.trainer | step  18500 | loss=2.0591 nce=2.0591 acc=0.4076 grad_norm=3.0986 lr=0.0000 steps_per_s=1.6985 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:20:49 INFO    qar.training.trainer | step  18600 | loss=1.9091 nce=1.9091 acc=0.4470 grad_norm=3.0162 lr=0.0000 steps_per_s=1.8231 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:21:46 INFO    qar.training.trainer | step  18700 | loss=1.9109 nce=1.9109 acc=0.4480 grad_norm=3.0672 lr=0.0000 steps_per_s=1.7539 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:22:43 INFO    qar.training.trainer | step  18800 | loss=1.9066 nce=1.9066 acc=0.4436 grad_norm=3.1124 lr=0.0000 steps_per_s=1.7826 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:23:39 INFO    qar.training.trainer | step  18900 | loss=1.9165 nce=1.9165 acc=0.4405 grad_norm=3.1072 lr=0.0000 steps_per_s=1.7813 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:24:39 INFO    qar.training.trainer | step  19000 | loss=1.9159 nce=1.9159 acc=0.4411 grad_norm=3.1259 lr=0.0000 steps_per_s=1.6477 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:24:47 INFO    qar.training.trainer | step  19000 | EVAL val/loss=2.7055 val/mrr=0.4584 val/recall@1=0.2827 val/recall@5=0.6848 val/recall@10=0.8008 val/mean_rank=8.6392
+16:25:45 INFO    qar.training.trainer | step  19100 | loss=1.9257 nce=1.9257 acc=0.4417 grad_norm=3.1469 lr=0.0000 steps_per_s=1.5292 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:26:42 INFO    qar.training.trainer | step  19200 | loss=1.9350 nce=1.9350 acc=0.4381 grad_norm=3.1455 lr=0.0000 steps_per_s=1.7369 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:27:41 INFO    qar.training.trainer | step  19300 | loss=1.9187 nce=1.9187 acc=0.4455 grad_norm=3.1403 lr=0.0000 steps_per_s=1.6944 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:28:39 INFO    qar.training.trainer | step  19400 | loss=1.9375 nce=1.9375 acc=0.4337 grad_norm=3.1534 lr=0.0000 steps_per_s=1.7317 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:29:36 INFO    qar.training.trainer | step  19500 | loss=1.9090 nce=1.9090 acc=0.4452 grad_norm=3.1531 lr=0.0000 steps_per_s=1.7689 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:30:35 INFO    qar.training.trainer | step  19600 | loss=1.9033 nce=1.9033 acc=0.4490 grad_norm=3.1327 lr=0.0000 steps_per_s=1.6932 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:31:31 INFO    qar.training.trainer | step  19700 | loss=1.9221 nce=1.9221 acc=0.4413 grad_norm=3.1551 lr=0.0000 steps_per_s=1.7903 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:32:27 INFO    qar.training.trainer | step  19800 | loss=1.9253 nce=1.9253 acc=0.4388 grad_norm=3.1605 lr=0.0000 steps_per_s=1.7684 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:33:21 INFO    qar.training.trainer | step  19900 | loss=1.8911 nce=1.8911 acc=0.4484 grad_norm=3.1142 lr=0.0000 steps_per_s=1.8560 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:34:17 INFO    qar.training.trainer | step  20000 | loss=1.9175 nce=1.9175 acc=0.4435 grad_norm=3.1352 lr=0.0000 steps_per_s=1.7797 mem/alloc_mib=6555.9780 mem/reserved_mib=7814.0000
+16:34:25 INFO    qar.training.trainer | step  20000 | EVAL val/loss=2.7039 val/mrr=0.4599 val/recall@1=0.2876 val/recall@5=0.6814 val/recall@10=0.7991 val/mean_rank=8.6580
+16:34:26 INFO    train | done: {'best': 0.28857421875, 'steps': 20000, 'val/loss': 2.7038709819316864, 'val/mrr': 0.45989533234387636, 'val/recall@1': 0.28759765625, 'val/recall@5': 0.681396484375, 'val/recall@10': 0.799072265625, 'val/mean_rank': 8.657958984375}

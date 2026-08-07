@@ -1,0 +1,90 @@
+name: retriever_hn2_mt05
+task: retriever
+seed: 42
+deterministic: false
+device: auto
+out_dir: runs
+data:
+  train_path: train-qar.jsonl
+  val_path: val-qar.jsonl
+  test_path: test-qar_all.jsonl
+  processed_dir: data/processed
+  batch_size: 128
+  eval_batch_size: 128
+  num_workers: 0
+  max_query_len: 64
+  max_doc_len: 128
+  train_subset: null
+  val_subset: 4096
+  dedup_questions_in_batch: true
+prepare:
+  selector: answer_overlap
+  min_positive_score: 0.1
+  min_snippet_tokens: 5
+  max_snippets: 32
+  test_fraction: 0.5
+  split_seed: 20260731
+  tokenizer_sample_docs: 400000
+  max_rows: null
+retrieval:
+  baselines:
+  - random
+  - first
+  - overlap
+  - bm25
+  - bm25_global
+  - bm25_noidf
+  split: val
+  ks:
+  - 1
+  - 3
+  - 5
+  bm25_k1: 1.5
+  bm25_b: 0.75
+  idf_file: idf.json
+  idf_min_df: 5
+  tie_break_seed: 12345
+  max_rows: null
+  checkpoint: null
+  batch_rows: 256
+  encode_batch: 256
+  out_name: null
+model:
+  name: biencoder
+  d_model: 384
+  n_layers: 6
+  n_heads: 8
+  d_ff: 1536
+  dropout: 0.1
+  vocab_size: 32000
+  max_len: 128
+  pooling: mean
+  share_encoder: false
+  pretrained: null
+loss:
+  temperature: 0.05
+  answerable_weight: 0.5
+  hard_negatives: 2
+optim:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.98
+  eps: 1.0e-08
+  grad_clip: 1.0
+  scheduler: cosine
+  warmup_ratio: 0.06
+train:
+  max_steps: 12000
+  grad_accum: 1
+  log_every: 100
+  eval_every: 1000
+  save_every: 2000
+  keep_last: 2
+  monitor: val/recall@1
+  monitor_mode: max
+  early_stop_patience: 0
+  amp: bf16
+  grad_checkpoint: false
+  compile: false

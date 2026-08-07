@@ -4,15 +4,28 @@
 *.jsonl
 /data/
 
-# Experiment outputs.
+# Experiment outputs. Keep everything a run *learned*; drop everything it weighs.
+#
 # `/runs/*` and not `/runs/`: git never descends into an excluded *directory*, so a
 # later `!` rule could not re-include anything beneath it. Excluding the contents
-# instead leaves the directory visible and the negation below effective.
+# instead leaves the directory visible and the negations below effective.
 /runs/*
-# Keep the measured results tables — 42 KB of JSON/Markdown that every number in the
-# reports is read from, and the only part of /runs/ that cannot be regenerated
-# without hours of GPU time. Checkpoints (550 MB each) stay ignored.
-!/runs/_baselines/
+!/runs/*/
+# What travels (~400 KB total): the results tables every reported number is read
+# from, the metrics.jsonl training curves the report plots — which cannot be
+# regenerated without re-running the training — and each run's resolved config,
+# which is its provenance.
+#
+# What does not: checkpoints, at ~550 MB each and 9.9 GB across ten runs. GitHub
+# rejects single files over 100 MB, and a checkpoint is only needed to *re-evaluate*
+# a model. Every model trained so far has already been evaluated and its numbers are
+# in runs/_baselines/, so losing them costs nothing unless a checkpoint is wanted for
+# a measurement not yet taken — the test split being the obvious one. Copy those by
+# hand, outside git.
+/runs/*/checkpoints/
+# metrics.jsonl would otherwise be caught by the corpus-wide `*.jsonl` rule above.
+# Last match wins in a .gitignore, so this negation has to live below it.
+!/runs/*/metrics.jsonl
 checkpoints/
 *.pt
 *.ckpt
