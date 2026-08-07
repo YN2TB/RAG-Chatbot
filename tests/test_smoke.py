@@ -175,3 +175,48 @@ def test_resume_writes_a_rewind_marker(tmp_path):
     assert len(events) == 1, "resume did not record a rewind marker"
     assert events[0]["step"] == 100
     assert events[0]["from_checkpoint"].endswith(".pt")
+
+
+def test_time_based_checkpointing_fires_without_the_step_cadence(tmp_path):
+    """A wall-clock cadence must bound data loss independently of throughput.
+
+    `save_every` is a step count, so the real time between checkpoints depends on
+    steps/s. With the step cadence off entirely, only the timer can produce a
+    checkpoint here.
+    """
+    cfg = _cfg(
+        tmp_path,
+        name="timesave",
+        **{
+            "train.max_steps": 40,
+            "train.save_every": 0,          # step cadence disabled
+            "train.save_every_minutes": 0.001,  # ~60 ms, fires immediately
+            "train.eval_every": 0,
+        },
+    )
+    seed_everything(cfg.seed)
+    Trainer(cfg, build("task", cfg.task, cfg)).train()
+
+    steps = sorted((cfg.run_dir / "checkpoints").glob("step_*.pt"))
+    assert steps, "wall-clock cadence produced no checkpoint"
+
+
+def test_time_based_checkpointing_can_be_disabled(tmp_path):
+    """At 0 the timer is off and only the final checkpoint should exist."""
+    cfg = _cfg(
+        tmp_path,
+        name="notimesave",
+        **{
+            "train.max_steps": 40,
+            "train.save_every": 0,
+            "train.save_every_minutes": 0,
+            "train.eval_every": 0,
+            "train.keep_last": 5,
+        },
+    )
+    seed_everything(cfg.seed)
+    Trainer(cfg, build("task", cfg.task, cfg)).train()
+
+    steps = sorted((cfg.run_dir / "checkpoints").glob("step_*.pt"))
+    assert len(steps) == 1, f"expected only the final checkpoint, got {[p.name for p in steps]}"
+    assert steps[0].name == "step_0000040.pt"

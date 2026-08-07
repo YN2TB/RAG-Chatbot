@@ -160,6 +160,11 @@ class TrainConfig:
     log_every: int = 50
     eval_every: int = 500
     save_every: int = 1000
+    # Wall-clock floor on fault tolerance, independent of throughput. `save_every` is
+    # a step count, so the real time between checkpoints swings with steps/s — 2000
+    # steps is 7 minutes at 4.5 steps/s and 19 at 1.75. This bounds how much work an
+    # interruption can destroy. 0 disables it and leaves only the step cadence.
+    save_every_minutes: float = 10.0
     keep_last: int = 2
     monitor: str = "val/loss"
     monitor_mode: str = "min"  # min | max

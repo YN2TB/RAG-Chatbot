@@ -43,9 +43,24 @@ fp16), applies `grad_checkpoint` / `compile`, opens the `JsonlLogger`.
 4. `log_every` → `train/*` scalars + `lr` + `steps_per_s` + CUDA peak memory
 5. `eval_every` → `task.validate` → `val/*`; a better `train.monitor` writes
    `best.pt`
-6. `save_every` → `step_*.pt`, then `rotate(keep_last)`
+6. `save_every` **or** `save_every_minutes` → `step_*.pt`, then `rotate(keep_last)`
 7. on exit: a final eval **unless the cadence already covered this step**, a final
    checkpoint, `metrics.close()`
+
+### Two checkpoint cadences
+
+`save_every` is a step count, so the *real time* it represents swings with
+throughput — 2000 steps is 7 minutes at 4.5 steps/s and 19 minutes at 1.75. What
+bounds how much work an interruption destroys is wall-clock time, not steps, so
+`train.save_every_minutes` (default 10.0, 0 disables) runs alongside it and whichever
+comes first wins.
+
+`_rotating_save` restarts the timer on **every** save however it was triggered, so a
+step-driven checkpoint also defers the next time-driven one and the two cadences
+cannot stack into two writes in a row.
+
+Both go through the same atomic write and `rotate(keep_last)`, so a time-driven save
+is not a second class of checkpoint — it resumes identically.
 
 Early stopping counts evaluations without improvement against
 `train.early_stop_patience` (0 disables) and never fires on the final eval.

@@ -59,6 +59,7 @@ class Trainer:
         self.best: float | None = None
         self.last_val: dict[str, float] = {}
         self._last_eval_step = -1
+        self._last_save = time.time()
         self._since_improved = 0
         self.metrics = JsonlLogger(self.run_dir / "metrics.jsonl", cfg.name)
 
@@ -176,9 +177,18 @@ class Trainer:
                 if self._evaluate(val_loader):
                     break
 
-            if cfg.save_every and self.step % cfg.save_every == 0:
-                self._save(self.ckpt_dir / f"step_{self.step:07d}.pt")
-                rotate(self.ckpt_dir, cfg.keep_last)
+            # Two independent cadences, whichever comes first. `save_every` alone is
+            # a step count, so the real-time gap between checkpoints swings with
+            # throughput: 2000 steps is 7 minutes at 4.5 steps/s and 19 at 1.75. The
+            # wall-clock bound is what actually caps how much work an interruption
+            # can destroy.
+            due_by_step = cfg.save_every and self.step % cfg.save_every == 0
+            due_by_time = (
+                cfg.save_every_minutes > 0
+                and time.time() - self._last_save >= cfg.save_every_minutes * 60
+            )
+            if due_by_step or due_by_time:
+                self._rotating_save()
 
         if self._last_eval_step != self.step:  # the cadence may already have covered it
             self._evaluate(val_loader, final=True)
@@ -216,6 +226,17 @@ class Trainer:
         elif not final:
             log.warning("monitor '%s' not in metrics %s", monitor, sorted(results))
         return False
+
+    def _rotating_save(self) -> None:
+        """Write a step checkpoint, rotate, and restart the wall-clock timer.
+
+        The timer restarts on every save however it was triggered, so a step-driven
+        save also defers the next time-driven one — the two cadences cannot stack up
+        and write twice in a row.
+        """
+        self._save(self.ckpt_dir / f"step_{self.step:07d}.pt")
+        rotate(self.ckpt_dir, self.cfg.train.keep_last)
+        self._last_save = time.time()
 
     def _save(self, path: Path) -> None:
         save_checkpoint(
