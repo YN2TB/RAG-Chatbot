@@ -149,7 +149,7 @@ the baselines, which is the point of the `dense` retriever:
 ```bash
 python scripts/evaluate_retrieval.py configs/retriever.yaml \
     --set retrieval.baselines=[dense] \
-          retrieval.checkpoint=runs/retriever_b128/checkpoints/best.pt
+          retrieval.checkpoint=runs/retriever_b128_hn2/checkpoints/best.pt
 ```
 
 The architecture is rebuilt from the checkpoint's own snapshotted config, so the

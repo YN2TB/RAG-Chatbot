@@ -12,6 +12,9 @@
       "Bash(git show *)"
     ],
     "deny": [
+      "Read(./train-qar.jsonl)",
+      "Read(./val-qar.jsonl)",
+      "Read(./test-qar_all.jsonl)",
       "Read(./amazonqa_train.jsonl)",
       "Read(./amazonqa_validation.jsonl)",
       "Read(./data/processed/train.jsonl)",

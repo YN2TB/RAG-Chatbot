@@ -2,6 +2,106 @@
 
 Working context for this project. Loaded automatically each session.
 
+## READ FIRST — moving to a new machine (written 2026-08-08)
+
+The project is moving from an **RTX 5060 Laptop, 8 GiB, Blackwell sm_120** to an
+**RTX 3070 Ti, reported 16 GiB, Ampere sm_86**. Everything below assumes you are
+starting on the new machine with a fresh clone.
+
+### 1. What did NOT travel
+
+`/runs/` is gitignored apart from `_baselines/`, and the corpus is gitignored
+entirely. So the new clone has **no raw corpus, no processed corpus, and no
+checkpoints** — only the code, the docs and the results tables.
+
+Rebuild, in this order (~30 min plus the download):
+
+```bash
+uv venv --python 3.12 && uv sync --extra dev
+# then run data.ipynb to fetch the three raw .jsonl files (3.4 GB total)
+uv run pytest                                                 # 130 tests, all CPU
+uv run python scripts/prepare_data.py configs/base.yaml       # ~11 min
+uv run python scripts/build_idf.py configs/base.yaml          # ~3 min
+```
+
+**Do not re-run the lexical baselines to "check".** They are committed in
+`runs/_baselines/val.json` and cost nothing to trust; regenerating them is only
+correct if `prepare.*` changed, in which case the corpus is a different one and
+every trained number is invalidated too.
+
+**Only one checkpoint still exists anywhere**, and it is not in git. Of the six
+trained runs, five had their checkpoints deleted on 2026-08-08 to reclaim 8.4 GB;
+all six keep their `metrics.jsonl` curves and `config.yaml`, which *are* committed.
+
+`runs/retriever_b128_hn2/checkpoints/` survives on the old machine, holding
+`best.pt` (step 12000, recall@1 0.1940) and `step_0020000.pt` (0.1941) — the best
+model measured. **Copy it across by hand; 550 MB per file is far past what GitHub
+accepts.** Without it, the test-split number and the whole NLP half need a ~3 h
+retrain before they can start.
+
+Everything already *measured* is in `runs/_baselines/` and `CHANGELOG.md`, so no run
+needs repeating merely to recover a number.
+
+### 2. Every hardware figure in this file is 8 GiB / Blackwell — re-probe
+
+These were the binding constraints on the old card and are now **wrong**:
+
+| Recorded on the 5060 (8 GiB) | Status on the 3070 Ti |
+|---|---|
+| `hard_negatives=4` overcommits (9,757 MiB) and thrashes at 0.16 steps/s | Probably fits — **re-test before believing it is ruled out** |
+| batch 256 fits at 5,730 MiB, 1.6 steps/s | Should be comfortable; larger batches may now be reachable |
+| hn=2 runs at 1.75 steps/s, 6,556 MiB | Ampere is a different architecture; expect different throughput |
+| `retrieval.encode_batch=256`, ~3.5 min per full-val dense evaluation | Can likely go higher |
+
+Re-probe before committing to a long run — 30 steps is enough:
+
+```bash
+uv run python scripts/train.py configs/retriever.yaml \
+    --set name=probe data.batch_size=256 loss.hard_negatives=4 \
+          train.max_steps=30 train.log_every=10 train.eval_every=0 train.save_every=0
+```
+
+Then read `train/mem/alloc_mib` and `train/steps_per_s` from
+`runs/probe/metrics.jsonl`. **Allocation above physical VRAM does not raise on
+Windows** — it spills to system RAM and collapses throughput, which is how
+`hard_negatives=4` wasted an hour before. A plausible-looking run at 0.16 steps/s is
+that failure, not a slow model.
+
+Confirm the reported 16 GiB with the probe rather than trusting the spec: every
+batch-size and hard-negative decision in this project is memory-bound, and the whole
+`sweeps/` design was shaped by an 8 GiB ceiling that may no longer apply.
+
+**bf16 is fine on Ampere** (sm_80 and up), so `train.amp=bf16` stays correct and
+still needs no GradScaler. `torch 2.13.0+cu130` supports Ampere; the cu130 pin in
+`pyproject.toml` was for Blackwell but does no harm here — keep it rather than
+risking the CPU-only default PyPI wheel.
+
+### 3. What was running when the old machine stopped
+
+**Nothing.** `runs/retriever_b128_hn1` completed before the move and its result is
+committed in `runs/_baselines/val_hn1.json`, so the negatives curve is finished and
+needs no re-running. The command below is kept only as the pattern for the next
+single-cell run:
+
+```bash
+uv run python scripts/train.py configs/retriever.yaml \
+    --set name=retriever_b128_hn4 data.batch_size=128 loss.hard_negatives=4 \
+          train.max_steps=20000
+uv run python scripts/evaluate_retrieval.py configs/retriever.yaml \
+    --set retrieval.baselines=[dense] \
+          retrieval.checkpoint=runs/retriever_b128_hn4/checkpoints/best.pt \
+          retrieval.out_name=val_hn4
+```
+
+`max_steps` must match whatever the run is being compared against — the cosine
+schedule is defined over it, so a 12k cell is not comparable with a 20k one. See the
+convention under Conventions.
+
+**The first thing worth running on the new card** is `hard_negatives=4`, which the
+8 GiB ceiling made impossible. Expect ~0.197-0.201 from the saturation trend, i.e.
+confirmation rather than a win. If it lands far above that, the saturation reading
+is wrong and more negatives are back on the table.
+
 ## Before you write code, or anything else
 
 **1. Read `.claude/` first.** `.claude/agents/*.md` defines six specialist roles
@@ -60,7 +160,7 @@ the short version.
 
 ```bash
 uv sync --extra dev                                    # once; pytest lives in the dev extra
-uv run pytest                                          # 103 tests, run before any experiment
+uv run pytest                                          # 130 tests, run before any experiment
 
 uv run python scripts/prepare_data.py configs/base.yaml      # raw corpus -> data/processed
 uv run python scripts/build_idf.py configs/base.yaml         # corpus IDF for bm25_global
@@ -229,11 +329,12 @@ runs/             per-run outputs and _baselines/ (gitignored)
 
 ## Status
 
-- [x] Harness: config, seeding, AMP, trainer, checkpoint/resume, logging, sweeps, 124 tests
+- [x] Harness: config, seeding, AMP, trainer, checkpoint/resume, logging, sweeps, 130 tests
 - [x] Split validated for leakage
-- [x] Data pipeline: distant-supervised pair construction, byte-level BPE, asin-hashed
-      val/test split, offset-indexed dataset + padding collator, manifest with a
-      leakage report. `scripts/prepare_data.py`
+- [x] Data pipeline: distant-supervised pair construction, byte-level BPE, the corpus's
+      own train/val/test files (asin hashing survives as the `data.test_path=null`
+      fallback), offset-indexed dataset + padding collator, manifest with a leakage
+      report. `scripts/prepare_data.py`
 - [x] Lexical baselines: random / first / overlap / bm25 / bm25_global / bm25_noidf,
       within-product ranking on the real pool. `scripts/evaluate_retrieval.py`
 - [x] From-scratch bi-encoder + InfoNCE: pre-norm encoder, two towers, in-batch
@@ -253,97 +354,6 @@ runs/             per-run outputs and _baselines/ (gitignored)
       runs at 1.6 steps/s → 3.5 h, so more negatives is a planned ablation
 Everything still open is in **Upcoming objectives** below, in the order it should
 happen.
-
-## READ FIRST — moving to a new machine (written 2026-08-08)
-
-The project is moving from an **RTX 5060 Laptop, 8 GiB, Blackwell sm_120** to an
-**RTX 3070 Ti, reported 16 GiB, Ampere sm_86**. Everything below assumes you are
-starting on the new machine with a fresh clone.
-
-### 1. What did NOT travel
-
-`/runs/` is gitignored apart from `_baselines/`, and the corpus is gitignored
-entirely. So the new clone has **no raw corpus, no processed corpus, and no
-checkpoints** — only the code, the docs and the results tables.
-
-Rebuild, in this order (~30 min plus the download):
-
-```bash
-uv venv --python 3.12 && uv sync --extra dev
-# then run data.ipynb to fetch the three raw .jsonl files (3.4 GB total)
-uv run pytest                                                 # 130 tests, all CPU
-uv run python scripts/prepare_data.py configs/base.yaml       # ~11 min
-uv run python scripts/build_idf.py configs/base.yaml          # ~3 min
-```
-
-**Do not re-run the lexical baselines to "check".** They are committed in
-`runs/_baselines/val.json` and cost nothing to trust; regenerating them is only
-correct if `prepare.*` changed, in which case the corpus is a different one and
-every trained number is invalidated too.
-
-**All trained checkpoints are gone.** Any run you want to *evaluate* again has to be
-*re-trained* first. Everything already measured is recorded below and in
-`CHANGELOG.md`, so nothing needs re-running just to recover a number.
-
-### 2. Every hardware figure in this file is 8 GiB / Blackwell — re-probe
-
-These were the binding constraints on the old card and are now **wrong**:
-
-| Recorded on the 5060 (8 GiB) | Status on the 3070 Ti |
-|---|---|
-| `hard_negatives=4` overcommits (9,757 MiB) and thrashes at 0.16 steps/s | Probably fits — **re-test before believing it is ruled out** |
-| batch 256 fits at 5,730 MiB, 1.6 steps/s | Should be comfortable; larger batches may now be reachable |
-| hn=2 runs at 1.75 steps/s, 6,556 MiB | Ampere is a different architecture; expect different throughput |
-| `retrieval.encode_batch=256`, ~3.5 min per full-val dense evaluation | Can likely go higher |
-
-Re-probe before committing to a long run — 30 steps is enough:
-
-```bash
-uv run python scripts/train.py configs/retriever.yaml \
-    --set name=probe data.batch_size=256 loss.hard_negatives=4 \
-          train.max_steps=30 train.log_every=10 train.eval_every=0 train.save_every=0
-```
-
-Then read `train/mem/alloc_mib` and `train/steps_per_s` from
-`runs/probe/metrics.jsonl`. **Allocation above physical VRAM does not raise on
-Windows** — it spills to system RAM and collapses throughput, which is how
-`hard_negatives=4` wasted an hour before. A plausible-looking run at 0.16 steps/s is
-that failure, not a slow model.
-
-Confirm the reported 16 GiB with the probe rather than trusting the spec: every
-batch-size and hard-negative decision in this project is memory-bound, and the whole
-`sweeps/` design was shaped by an 8 GiB ceiling that may no longer apply.
-
-**bf16 is fine on Ampere** (sm_80 and up), so `train.amp=bf16` stays correct and
-still needs no GradScaler. `torch 2.13.0+cu130` supports Ampere; the cu130 pin in
-`pyproject.toml` was for Blackwell but does no harm here — keep it rather than
-risking the CPU-only default PyPI wheel.
-
-### 3. What was running when the old machine stopped
-
-**Nothing.** `runs/retriever_b128_hn1` completed before the move and its result is
-committed in `runs/_baselines/val_hn1.json`, so the negatives curve is finished and
-needs no re-running. The command below is kept only as the pattern for the next
-single-cell run:
-
-```bash
-uv run python scripts/train.py configs/retriever.yaml \
-    --set name=retriever_b128_hn1 data.batch_size=128 loss.hard_negatives=1 \
-          train.max_steps=20000
-uv run python scripts/evaluate_retrieval.py configs/retriever.yaml \
-    --set retrieval.baselines=[dense] \
-          retrieval.checkpoint=runs/retriever_b128_hn1/checkpoints/best.pt \
-          retrieval.out_name=val_hn1
-```
-
-`max_steps` must match whatever the run is being compared against — the cosine
-schedule is defined over it, so a 12k cell is not comparable with a 20k one. See the
-convention under Conventions.
-
-**The first thing worth running on the new card** is `hard_negatives=4`, which the
-8 GiB ceiling made impossible. Expect ~0.197-0.201 from the saturation trend, i.e.
-confirmation rather than a win. If it lands far above that, the saturation reading
-is wrong and more negatives are back on the table.
 
 ## Upcoming objectives
 

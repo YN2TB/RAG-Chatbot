@@ -4,7 +4,7 @@
 > rules) and the root `CLAUDE.md`. Record the change in `CHANGELOG.md` in the
 > same commit — what was learned, not what the diff shows.
 
-Harness correctness, not research results. 40 tests, all CPU, all a few seconds.
+Harness correctness, not research results. 130 tests, all CPU, all a few seconds.
 Run before every experiment: if these fail, any number the experiment produces is
 meaningless.
 
@@ -31,7 +31,7 @@ overriding only named fields, CLI overrides landing as typed values rather than
 strings, `Optional` fields accepting `null`, unknown keys raising, and
 save→reload round-tripping to an identical dict.
 
-**test_smoke.py** (6) — the whole loop on `dev_toy`:
+**test_smoke.py** (11) — the whole loop on `dev_toy`:
 
 | Test | Asserts |
 |---|---|
@@ -41,12 +41,17 @@ save→reload round-tripping to an identical dict.
 | `test_grad_accum_matches_large_batch` | 32×2 tracks 64×1 within `rel=0.35` |
 | `test_train_scalars_are_not_scaled_by_grad_accum` | `train/*` is a mean over micro-batches, not a sum |
 | `test_metrics_are_valid_jsonl` | every line parses, has `step` and `wall_s`; `config.yaml` was snapshotted |
+| `test_read_series_resolves_a_resume_rewind` | later record per step wins, so an abandoned trajectory cannot supply a "best" |
+| `test_read_series_ignores_other_metrics_and_bad_lines` | a corrupt line does not break curve reading |
+| `test_resume_writes_a_rewind_marker` | `maybe_resume` logs `{"event": "resume"}` |
+| `test_time_based_checkpointing_fires_without_the_step_cadence` | the wall-clock cadence alone produces a checkpoint |
+| `test_time_based_checkpointing_can_be_disabled` | at 0 only the final checkpoint exists |
 
-The last two are complementary: the first checks `val/*` (computed by
-`Task.validate`, never touched by the accumulation bug), the second checks the
-`train/*` running averages the trainer maintains itself.
+`test_train_scalars_...` and `test_metrics_are_valid_jsonl` are complementary: the
+first checks `val/*` (computed by `Task.validate`, never touched by the accumulation
+bug), the second checks the `train/*` running averages the trainer maintains itself.
 
-**test_data.py** (23) — the corpus pipeline, on a synthetic corpus written into
+**test_data.py** (27) — the corpus pipeline, on a synthetic corpus written into
 `tmp_path`. Text normalisation and the F1/recall length bias; row parsing and the
 snippet floor; the three selectors; asin hashing (determinism, uniformity, the
 degenerate fractions); `prepare` end to end (every artifact written, products
@@ -56,6 +61,29 @@ byte-offset indexing returning the right records; the collator's padding and mas
 The synthetic rows carry the four baseline fields (`top_sentences_IR` and friends)
 precisely so the parser is tested on the shape the real corpus actually has, not on
 the shape the documentation used to claim.
+
+**test_models.py** (15) — `TextEncoder` and `BiEncoder` shapes, GPT-2 style init,
+and the padding-invariance check that everything else leans on:
+`test_padding_cannot_change_the_representation`. Masked mean pooling must exclude
+padding, or a short question's embedding would depend on which other rows shared its
+batch. `DenseRetriever.score_batch` groups documents from different rows into one
+forward pass, so that invariant is what makes batched evaluation safe.
+
+**test_retrieval.py** (41) — the largest file. Baseline registration and scoring;
+corpus-wide IDF (document frequency, pruning, the floor for unseen terms); the
+`bm25_global` vs `bm25_noidf` controlled comparison; `dense` (checkpoint loading,
+architecture rebuilt from the checkpoint's own snapshot rather than the caller's
+config, batched scoring matching per-row to `abs=1e-4`, `encode_batch` not moving a
+score); and `merge_results` (merge, supersede, stale-row drop, corrupt file).
+
+**test_retriever_task.py** (17) — the real task end to end on a synthetic corpus:
+prepare → tokenizer → dataset → collator → InfoNCE, including hard-negative masking
+and the answerability head's presence/absence at `answerable_weight` 0 vs > 0.
+
+**test_sampler.py** (9) — `QGroupBatchSampler`: batches are exactly `batch_size`,
+questions within a batch are distinct, unplaceable rows are reported in `.dropped`,
+and a split with fewer distinct questions than `batch_size` raises rather than
+yielding nothing forever.
 
 The overfit test is the important one. `dev_toy` is learnable by construction, so
 a loss that will not fall means the harness is broken, not the idea.
