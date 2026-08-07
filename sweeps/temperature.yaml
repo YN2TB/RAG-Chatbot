@@ -13,10 +13,12 @@ grid:
 
 fixed:
   - data.batch_size=128
+  - train.max_steps=12000   # measured convergence length; see CLAUDE.md
   - loss.hard_negatives=2
 
 # Score every cell's best.pt through the same within-product path as the baseline
-# table. `max_rows` trades precision for grid time; drop it for the final table.
+# table. Full split, no max_rows: dense evaluation is ~3.5 min per cell since
+# length-sorted batching, so approximating buys nothing and costs comparability
+# with the baseline table, which is measured on all 87,475 rows.
 evaluate:
   split: val
-  max_rows: 20000

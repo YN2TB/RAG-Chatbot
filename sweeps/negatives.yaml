@@ -24,12 +24,24 @@ prefix: negatives
 monitor: val/recall@1        # training-health only; see the warning above
 monitor_mode: max
 
+# NOT RUN AS A SWEEP. All three cells exist as standalone 20k runs, because hn=0
+# (runs/retriever_b128, 0.1707) and hn=2 (runs/retriever_b128_hn2, 0.1940) were
+# measured before this file did. Running the grid would re-train both at a different
+# length and produce numbers that no longer match the results table, for three times
+# the GPU cost. Only the missing hn=1 cell was run, at max_steps=20000 so all three
+# share a schedule -- see the `max_steps` convention in the root CLAUDE.md.
+#
+# Kept for the record, and because re-running it as a grid is the right move if the
+# schedule or the corpus ever changes and all three need redoing together.
 grid:
   loss.hard_negatives: [0, 1, 2]
 
 fixed:
   - data.batch_size=128
+  - train.max_steps=20000
 
+# Full split: dense evaluation is ~3.5 min per cell since length-sorted batching, so
+# there is no reason to approximate with max_rows and every reason not to -- these
+# numbers sit beside the baseline table, which is measured on all 87,475 rows.
 evaluate:
   split: val
-  max_rows: 20000

@@ -11,8 +11,14 @@
 # whether that helps retrieval or competes with it.
 #
 # Two metrics matter per cell: within-product recall (does retrieval improve?) and
-# `val/ans_f1` in metrics.jsonl (did the head learn anything?). Accuracy is not the
-# one to read -- the classes are 65/35.
+# `val/ans_f1` in metrics.jsonl (did the head learn anything?).
+#
+# THE HEAD'S BASELINE IS ans_f1 = 0.79, NOT ZERO. Validation is 65.1% answerable, so
+# always predicting "yes" gives precision 0.651, recall 1.000, F1 0.789, accuracy
+# 0.651. Measured at step 60 of a real run -- before the head could have learned
+# anything -- it reported ans_f1 0.7904 and ans_recall 0.9957. Read ans_recall first:
+# while it sits near 1.0 the head is a constant function whatever F1 says. Accuracy
+# is the least informative number here and should not be quoted at all.
 config: configs/retriever.yaml
 prefix: multitask
 monitor: val/recall@1
@@ -23,8 +29,8 @@ grid:
 
 fixed:
   - data.batch_size=128
+  - train.max_steps=12000   # measured convergence length; see CLAUDE.md
   - loss.hard_negatives=2
 
 evaluate:
   split: val
-  max_rows: 20000

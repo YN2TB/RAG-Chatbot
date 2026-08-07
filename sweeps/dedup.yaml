@@ -19,8 +19,8 @@ grid:
 
 fixed:
   - data.batch_size=128
+  - train.max_steps=12000   # measured convergence length; see CLAUDE.md
   - loss.hard_negatives=2
 
 evaluate:
   split: val
-  max_rows: 20000
