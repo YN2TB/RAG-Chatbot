@@ -101,6 +101,22 @@ corpus — legitimate, but those embedding rows are dead weight).
 `loss.answerable_weight > 0` adds the multi-task head's BCE to the loss and its
 metrics to the log. At 0 the head is not built at all.
 
+#### `ans_f1 = 0.79` is the *untrained* score, not a result
+
+Validation is 65.1% answerable, so a head that always predicts "yes" scores
+precision 0.651, recall 1.000, **F1 0.789** and accuracy 0.651 while having learned
+nothing at all.
+
+Measured at step 60 of a real run, before the head could have learned anything:
+`ans_acc` 0.6555, `ans_precision` 0.6563, `ans_recall` **0.9957**, `ans_f1` 0.7904 —
+the majority-class baseline almost exactly.
+
+So the head has only done something if **`ans_f1` clears ~0.79 and `ans_recall`
+falls meaningfully below 1.0**. Quoting 0.80 as a working classifier would be a
+misreport, and `ans_acc` is the least informative number of the set: it cannot beat
+0.651 without the model taking a real risk. Watch `ans_recall` first — while it sits
+at 0.99 the head is a constant function no matter what F1 says.
+
 ### Hard negatives
 
 `loss.hard_negatives = n` widens the score matrix from `[B, B]` to `[B, B + n]`, the
