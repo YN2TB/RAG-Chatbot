@@ -1,4 +1,0 @@
-run,loss.temperature,status,best,best_step,final_step
-temp__temperature0p01,0.01,ok,0.87402,300,300
-temp__temperature0p05,0.05,ok,0.9043,200,300
-temp__temperature0p2,0.2,ok,0.90918,200,300
