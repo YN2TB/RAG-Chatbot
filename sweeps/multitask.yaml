@@ -1,0 +1,30 @@
+# The multi-task answerability head, which has never actually been trained.
+#
+# `loss.answerable_weight` has been 0 in every run so far, and the head is not built
+# at all at weight 0 -- so a zero-weight run is structurally a different model, not a
+# weaker version of the same one. That makes 0.0 the honest control row here rather
+# than a degenerate cell.
+#
+# The head reads the pooled *question only*. Giving it the positive document would
+# teach it to predict the distant-supervision selector rather than answerability.
+# Its job is to regularise the query tower, and the question this grid answers is
+# whether that helps retrieval or competes with it.
+#
+# Two metrics matter per cell: within-product recall (does retrieval improve?) and
+# `val/ans_f1` in metrics.jsonl (did the head learn anything?). Accuracy is not the
+# one to read -- the classes are 65/35.
+config: configs/retriever.yaml
+prefix: multitask
+monitor: val/recall@1
+monitor_mode: max
+
+grid:
+  loss.answerable_weight: [0.0, 0.1, 0.5]
+
+fixed:
+  - data.batch_size=128
+  - loss.hard_negatives=2
+
+evaluate:
+  split: val
+  max_rows: 20000

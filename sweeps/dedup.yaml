@@ -1,0 +1,26 @@
+# The false-negative guard, measured against its own absence.
+#
+# 704,201 train rows carry 638,306 distinct questions, so ~66,000 rows share their
+# question text with another row. In-batch InfoNCE treats every other row's positive
+# as a negative, so when two of those meet in one batch the gradient asserts that a
+# correct snippet is wrong. `QGroupBatchSampler` prevents the collision.
+#
+# The argument is sound and the guard is on by default, which is exactly why it needs
+# measuring: an untested assumption in the pipeline is still an assumption. If the
+# effect is null, that is a reportable finding about how rare the collision is in
+# practice at batch 128.
+config: configs/retriever.yaml
+prefix: dedup
+monitor: val/recall@1
+monitor_mode: max
+
+grid:
+  data.dedup_questions_in_batch: [true, false]
+
+fixed:
+  - data.batch_size=128
+  - loss.hard_negatives=2
+
+evaluate:
+  split: val
+  max_rows: 20000

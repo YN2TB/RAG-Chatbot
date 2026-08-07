@@ -106,6 +106,13 @@ class Trainer:
         self.step = int(payload.get("step", 0))
         self.best = payload.get("best")
 
+        # The log is append-only, so rewinding to the checkpoint's step leaves the
+        # records from the abandoned tail still in the file: steps between here and
+        # wherever the interrupted run got to will appear twice, with different
+        # values. Mark the rewind so a reader can tell the two trajectories apart
+        # instead of plotting a curve that jumps backwards.
+        self.metrics.log(self.step, {"event": "resume", "from_checkpoint": latest.name})
+
     # ------------------------------------------------------------------ #
 
     def train(self) -> dict[str, float]:

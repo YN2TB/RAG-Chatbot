@@ -1,0 +1,25 @@
+# Architecture choices that cost nothing to flip and have never been compared.
+#
+# `pooling`: masked mean averages every real token; cls leans on one position that,
+# from scratch, has no pretraining objective teaching it to summarise. Mean is the
+# default on that reasoning alone -- reasoning is not evidence.
+#
+# `share_encoder`: two towers let each side specialise, and questions and review
+# prose are genuinely different registers. One tower halves the parameters and gives
+# every gradient twice the data, which on 700k pairs from scratch may well win.
+config: configs/retriever.yaml
+prefix: arch
+monitor: val/recall@1
+monitor_mode: max
+
+grid:
+  model.pooling: [mean, cls]
+  model.share_encoder: [false, true]
+
+fixed:
+  - data.batch_size=128
+  - loss.hard_negatives=2
+
+evaluate:
+  split: val
+  max_rows: 20000

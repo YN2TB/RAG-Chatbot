@@ -1,13 +1,22 @@
-# Example ablation: InfoNCE temperature. Swap in the real config once the
-# retriever task exists; the harness and the table are already wired.
-config: configs/dev.yaml
+# InfoNCE temperature. The one knob that changes nothing but the shape of the
+# softmax, so it isolates "how sharply must the objective separate candidates?"
+#
+# Ranked on within-product recall@1, not the in-batch number in metrics.jsonl --
+# see `evaluate:` below.
+config: configs/retriever.yaml
 prefix: temp
-monitor: val/recall@1
+monitor: val/recall@1        # in-batch; kept as a training-health signal only
 monitor_mode: max
 
 grid:
-  loss.temperature: [0.01, 0.05, 0.2]
+  loss.temperature: [0.02, 0.05, 0.1]
 
-# Applied to every cell in the grid.
 fixed:
-  - train.max_steps=300
+  - data.batch_size=128
+  - loss.hard_negatives=2
+
+# Score every cell's best.pt through the same within-product path as the baseline
+# table. `max_rows` trades precision for grid time; drop it for the final table.
+evaluate:
+  split: val
+  max_rows: 20000

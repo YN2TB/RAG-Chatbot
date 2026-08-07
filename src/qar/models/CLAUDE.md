@@ -76,3 +76,15 @@ Defaults (`d_model=384`, 6 layers, `d_ff=1536`, vocab 32k) give ~23M parameters 
 tower, ~46M with two. With AdamW state that is roughly 0.75 GB before activations —
 comfortable inside 8 GB, which is what leaves room for the batch size that actually
 matters to InfoNCE.
+
+**Measured on the 5060 (8,151 MiB), bf16, `max_query_len=64` / `max_doc_len=128`:**
+
+| batch | steps/s | allocated | reserved |
+|---|---|---|---|
+| 128 | 5.3-5.7 | 3,184 MiB | 3,812 MiB |
+| 256 | 1.6 | 5,730 MiB | 6,838 MiB |
+
+Doubling the batch costs ~3.4× the wall time, not 2×, so the extra negatives are not
+free: 20k steps takes 65 min at 128 and ~3.5 h at 256. Both fit; the choice is a
+research decision about how many negatives the softmax needs, and it belongs in the
+DL report as a measured trade-off rather than a default someone picked.

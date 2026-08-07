@@ -1,0 +1,25 @@
+# The data-scaling curve: does the retriever want more pairs, or better ones?
+#
+# This is why the trainer is step-based rather than epoch-based. Every cell takes the
+# same number of optimisation steps, so the only thing that changes is how many
+# distinct pairs those steps drew from. An epoch-based loop would confound the two
+# and the curve would mean nothing.
+#
+# It also bounds the value of the whole distant-supervision approach: if quality
+# plateaus well before 704k pairs, the ceiling is the mean positive score of 0.26 --
+# the noise in the inferred target -- and not the amount of data.
+config: configs/retriever.yaml
+prefix: scale
+monitor: val/recall@1
+monitor_mode: max
+
+grid:
+  data.train_subset: [25000, 100000, 400000, null]
+
+fixed:
+  - data.batch_size=128
+  - loss.hard_negatives=2
+
+evaluate:
+  split: val
+  max_rows: 20000

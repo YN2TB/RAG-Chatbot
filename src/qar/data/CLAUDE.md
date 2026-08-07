@@ -19,16 +19,16 @@ sampler.py    batches with distinct questions — the false-negative guard
 
 ## Contract
 
-**In** — the two raw JSONL files named by `data.train_path` / `data.val_path`, plus
-`cfg.prepare` and `cfg.model.vocab_size`. Nothing else: no environment, no network,
-no hidden resource files.
+**In** — the raw JSONL files named by `data.train_path`, `data.val_path` and
+`data.test_path`, plus `cfg.prepare` and `cfg.model.vocab_size`. Nothing else: no
+environment, no network, no hidden resource files.
 
 **Out** — `data.processed_dir` containing:
 
 | File | Contents |
 |---|---|
 | `train.jsonl` | one record per usable train question |
-| `val.jsonl` / `test.jsonl` | the validation file, split by hashed asin |
+| `val.jsonl` / `test.jsonl` | the validation and test files, one pass each |
 | `tokenizer.json` | self-contained byte-level BPE |
 | `manifest.json` | row accounting, prepare settings, leakage report |
 | `*.offsets.npy` | byte-offset index, written lazily by `dataset.py` |
@@ -43,6 +43,27 @@ qgroup, positive_idx, positive_score, snippets[]
 `positive_idx` indexes into `snippets`; the positive is never stored as a second
 copy, so the two cannot drift apart. `snippets` is the full retrieval pool, kept
 for within-product evaluation and for mining hard negatives from the same product.
+
+## Two split regimes
+
+`data.test_path` decides where `test.jsonl` comes from, and the manifest records
+which regime ran as `test_source`.
+
+| `data.test_path` | `test_source` | Effect |
+|---|---|---|
+| set (default) | `upstream_file` | each raw file gets its own pass; **validation stays whole** |
+| `null` | `carved_from_val` | validation is divided by hashed asin, `prepare.test_fraction` |
+
+The upstream corpus ships `test-qar_all.jsonl` (92,726 rows, 15,599 products),
+already product-disjoint from train (0.74% overlap) and from validation (0.10%) —
+the same profile the train/validation pair already had. Carving was the fallback
+from before that file was in the folder, and it cost half of validation for no
+gain. It stays available because a corpus built either way is reproducible, and
+because the two are an ablation pair, not successive versions of one thing.
+
+**A configured-but-missing test file raises.** Silently downgrading to the carve
+would produce a different corpus under the same config, discovered only from a
+manifest twenty minutes later.
 
 ## The one decision that matters
 
@@ -63,20 +84,23 @@ ablation axis for the DL report, not an implementation detail.
 it a different row population than the real selectors see. A control that trains on
 different data is not a control.
 
-**Measured on the full corpus** (`answer_overlap`, `min_positive_score=0.10`, 13.5 min):
+**Measured on the full corpus** (`answer_overlap`, `min_positive_score=0.10`,
+`test_source: upstream_file`, 10.8 min):
 
 | | train | val | test |
 |---|---|---|---|
-| rows read | 737,214 | 46,015 | 46,022 |
-| no trustworthy positive | 33,013 (4.5%) | 2,214 | 2,348 |
-| kept | 704,201 | 43,801 | 43,674 |
-| unique products | 123,616 | 7,739 | 7,757 |
-| snippets / row | 9.30 | 9.32 | 9.33 |
-| answerable | 62.8% | 65.0% | 65.1% |
-| mean positive score | 0.262 | 0.260 | 0.260 |
+| rows read | 737,214 | 92,037 | 92,611 |
+| no trustworthy positive | 33,013 (4.5%) | 4,562 | 4,429 |
+| kept | 704,201 | 87,475 | 88,182 |
+| unique products | 123,616 | 15,496 | 15,509 |
+| unique questions | 638,306 | 83,667 | 84,287 |
+| snippets / row | 9.30 | 9.33 | 9.31 |
+| answerable | 62.8% | 65.1% | 65.3% |
+| mean positive score | 0.262 | 0.260 | 0.261 |
 
-Plus 1,562 train and 146 validation rows that never parsed. Read + malformed comes
-to exactly 738,776 and 92,183 — the corpus row counts — so nothing is silently lost.
+Plus 1,562 train, 146 validation and 115 test rows that never parsed. Read +
+malformed comes to exactly 738,776 / 92,183 / 92,726 — the raw row counts — so
+nothing is silently lost on any split.
 
 **A mean positive score of 0.26 is the headline limitation of this project.** It says
 the average inferred positive shares roughly a quarter of its tokens with the
@@ -86,19 +110,22 @@ its ceiling is set by that noise, not only by the architecture.
 
 ## Leakage, measured
 
-`manifest.json` carries the check the split design exists to pass:
+`manifest.json` carries the check the split design exists to pass. Under
+`upstream_file`:
 
 ```
-asin_overlap_val_test    0      <- the one this pipeline controls
-asin_overlap_train_val   49  }  103 total, inherited from the upstream
-asin_overlap_train_test  54  }  train/validation split, not introduced here
+asin_overlap_train_val   103
+asin_overlap_train_test  116
+asin_overlap_val_test     15
 ```
 
-The 103 matches the count already recorded for the raw corpus exactly, which is the
-evidence that asin hashing kept every product whole: it moved the pre-existing
-overlap around between val and test without creating any of its own.
+**All three match the raw files exactly**, which is the point: the pipeline inherits
+whatever overlap the corpus authors shipped and introduces none of its own. Under
+the older `carved_from_val` regime `asin_overlap_val_test` was 0 by construction and
+the 103 was split 49/54 between val and test — evidence that asin hashing kept every
+product whole rather than that the data was cleaner.
 
-Question-text overlap (3,887 between train and val) is expected and is **not**
+Question-text overlap (7,164 train↔val, 2,284 val↔test) is expected and is **not**
 leakage — generic phrasing recurring across products whose reviews are disjoint.
 
 ## Rules

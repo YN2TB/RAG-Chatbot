@@ -29,6 +29,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from qar.utils.logging import read_series
 
 
 def slug(pairs: list[tuple[str, object]]) -> str:
@@ -43,28 +46,57 @@ def best_from(run_dir: Path, monitor: str, mode: str) -> dict[str, object]:
     if not path.exists():
         return {"status": "no-metrics"}
 
-    best, at_step, final = None, None, {}
-    with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if monitor not in record:
-                continue
-            value = record[monitor]
-            final = record
-            if best is None or (value < best if mode == "min" else value > best):
-                best, at_step = value, record.get("step")
-
-    if best is None:
+    # read_series resolves resume rewinds: a step logged twice keeps the later
+    # value, so "best" can never come from a trajectory that was abandoned.
+    series = read_series(path, monitor)
+    if not series:
         return {"status": "monitor-missing"}
+
+    pick = min if mode == "min" else max
+    at_step, best = pick(series, key=lambda pair: pair[1])
     return {
         "status": "ok",
         "best": round(float(best), 5),
         "best_step": at_step,
-        "final_step": final.get("step"),
+        "final_step": series[-1][0],
     }
+
+
+def within_product(name: str, config: str, options: dict) -> dict[str, object]:
+    """Score this cell's checkpoint the way the baseline table is scored.
+
+    `best_from` reads `metrics.jsonl`, whose `val/recall@1` ranks a row against
+    `eval_batch_size` candidates from *other products*. A grid ranked on that picks
+    its winner on the easy problem: the first trained run scored 0.4998 there and
+    0.1707 within-product, below plain token overlap. So a sweep that reports only
+    the in-batch number would hand the report a table of the wrong metric.
+    """
+    checkpoint = ROOT / "runs" / name / "checkpoints" / "best.pt"
+    if not checkpoint.exists():
+        return {"within_status": "no-checkpoint"}
+
+    overrides = [
+        "retrieval.baselines=[dense]",
+        f"retrieval.checkpoint={checkpoint.as_posix()}",
+        f"retrieval.out_name={name}",  # per cell, or every cell overwrites "dense"
+        f"retrieval.split={options.get('split', 'val')}",
+    ]
+    if options.get("max_rows"):
+        overrides.append(f"retrieval.max_rows={options['max_rows']}")
+
+    cmd = [sys.executable, str(ROOT / "scripts" / "evaluate_retrieval.py"), config,
+           "--set", *overrides]
+    if subprocess.run(cmd, cwd=ROOT, check=False).returncode != 0:
+        return {"within_status": "eval-failed"}
+
+    path = ROOT / "runs" / "_baselines" / f"{name}.json"
+    try:
+        overall = json.loads(path.read_text(encoding="utf-8"))["results"]["dense"]["overall"]
+    except (json.JSONDecodeError, KeyError, OSError):
+        return {"within_status": "eval-unreadable"}
+
+    # Prefixed so no column can be mistaken for the in-batch number beside it.
+    return {f"within_{k}": v for k, v in overall.items()}
 
 
 def main() -> None:
@@ -80,6 +112,7 @@ def main() -> None:
     extra: list[str] = spec.get("fixed", [])
     monitor = spec.get("monitor", "val/recall@1")
     mode = spec.get("monitor_mode", "max")
+    evaluate = spec.get("evaluate")
 
     keys = list(grid)
     combos = [list(zip(keys, values)) for values in itertools.product(*(grid[k] for k in keys))]
@@ -96,12 +129,14 @@ def main() -> None:
             print("   ", " ".join(cmd))
             continue
 
-        completed = subprocess.run(cmd, cwd=ROOT)
+        completed = subprocess.run(cmd, cwd=ROOT, check=False)
         result = {"run": name, **dict(pairs)}
         if completed.returncode != 0:
             result["status"] = f"failed(rc={completed.returncode})"
         else:
             result.update(best_from(ROOT / "runs" / name, monitor, mode))
+            if evaluate:
+                result.update(within_product(name, base_config, evaluate))
         rows.append(result)
 
     if args.dry_run or not rows:

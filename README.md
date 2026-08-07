@@ -10,13 +10,13 @@ coursework deliverables from one codebase:
 
 ## Dataset
 
-`amazonqa_train.jsonl` (2.67 GB) and `amazonqa_validation.jsonl` (747 MB), downloaded
-by `data.ipynb` and not tracked in git.
+`train-qar.jsonl` (2.67 GB), `val-qar.jsonl` (747 MB) and `test-qar_all.jsonl`
+(751 MB), downloaded by `data.ipynb` and not tracked in git.
 
 | | |
 |---|---|
-| Rows | 738,776 train / 92,183 val |
-| Unique products | 124,416 train / 15,592 val |
+| Rows | 738,776 train / 92,183 val / 92,726 test |
+| Unique products | 124,416 train / 15,592 val / 15,599 test |
 | Unique questions | 684,703 train / 89,336 val |
 | Snippets / answers | ~9.3 and ~3.9 per question (~6.8M snippets in train) |
 | Categories | 17 (Electronics 23%, Home & Kitchen 15%, …) |
@@ -33,10 +33,12 @@ appear in `review_snippets`, so it ranks a different candidate set entirely.
 
 ### Three measured facts that shape the design
 
-**The split is product-disjoint.** Only 103 of 15,592 val products (0.7%) appear in
-train, so evaluation measures generalisation to unseen products. Question-text overlap
-is higher (7.5%) but is not leakage — it is generic phrasing (*"what's the weight
-limit?"*, *"Does it swivel?"*) asked about different products with disjoint reviews.
+**The splits are product-disjoint.** Only 103 of 15,592 val products (0.7%) and 116
+of 15,599 test products (0.74%) appear in train, so evaluation measures generalisation
+to unseen products. The corpus ships its own test file, so nothing has to be carved
+out of validation. Question-text overlap is higher (7.5% train↔val, 7.8% train↔test)
+but is not leakage — it is generic phrasing (*"what's the weight limit?"*, *"Does it
+swivel?"*) asked about different products with disjoint reviews.
 
 **In-batch negatives need a dedup guard.** Train has 738,776 rows but 684,703 unique
 questions. If two rows sharing a question string land in the same batch, InfoNCE treats
@@ -73,7 +75,7 @@ first.
 
 ## Preparing the corpus
 
-One offline pass turns the two raw files into everything training reads:
+One offline pass turns the three raw files into everything training reads:
 
 ```bash
 uv run python scripts/prepare_data.py configs/base.yaml
@@ -82,7 +84,7 @@ uv run python scripts/prepare_data.py configs/base.yaml
 | Output in `data/processed/` | Contents |
 |---|---|
 | `train.jsonl` | one record per usable train question |
-| `val.jsonl` / `test.jsonl` | validation file split by hashed asin, products kept whole |
+| `val.jsonl` / `test.jsonl` | the validation and test files, one pass each |
 | `tokenizer.json` | byte-level BPE fitted on the train split only |
 | `manifest.json` | row accounting, the settings used, and a leakage report |
 
@@ -106,22 +108,22 @@ python scripts/evaluate_retrieval.py configs/base.yaml # -> runs/_baselines/val.
 ```
 
 Ranking is scoped to **one product's snippet pool** — about nine candidates — because
-that is the pool a real system would search. On val (43,801 rows):
+that is the pool a real system would search. On val (87,475 rows, mean pool 9.33):
 
 | retriever | recall@1 | recall@3 | recall@5 | mrr |
 |---|---|---|---|---|
-| random | 0.1272 | 0.3483 | 0.5458 | 0.3237 |
-| first | 0.1294 | 0.3487 | 0.5471 | 0.3252 |
-| bm25 | 0.1768 | 0.4236 | 0.6210 | 0.3759 |
-| bm25_global | 0.1861 | 0.4417 | 0.6406 | 0.3872 |
-| bm25_noidf | 0.1940 | 0.4561 | 0.6532 | 0.3961 |
-| **overlap** | **0.2145** | **0.4906** | **0.6868** | **0.4181** |
+| random | 0.1305 | 0.3514 | 0.5486 | 0.3262 |
+| first | 0.1282 | 0.3458 | 0.5455 | 0.3239 |
+| bm25 | 0.1771 | 0.4244 | 0.6215 | 0.3763 |
+| bm25_global | 0.1870 | 0.4427 | 0.6412 | 0.3878 |
+| bm25_noidf | 0.1942 | 0.4564 | 0.6535 | 0.3961 |
+| **overlap** | **0.2149** | **0.4903** | **0.6855** | **0.4184** |
 
-Two results worth stating plainly. `first ≈ random`, so the snippet pool carries no
-ordering to exploit. And **BM25 loses to plain token overlap** — within a single
-product the discriminative terms are the common ones (the product's own features),
-and IDF suppresses exactly those. The `bm25_global` and `bm25_noidf` rows isolate
-that effect one variable at a time.
+Two results worth stating plainly. `first` does not beat `random`, so the snippet
+pool carries no ordering to exploit. And **BM25 loses to plain token overlap** —
+within a single product the discriminative terms are the common ones (the product's
+own features), and IDF suppresses exactly those. The `bm25_global` and `bm25_noidf`
+rows isolate that effect one variable at a time.
 
 ## Training the retriever
 
@@ -141,6 +143,31 @@ negatives. Two things to keep in mind:
   than picking one snippet out of a single product's nine. The comparable figure
   comes from `scripts/evaluate_retrieval.py`.
 
+Scoring a trained checkpoint against the table above uses the same entry point as
+the baselines, which is the point of the `dense` retriever:
+
+```bash
+python scripts/evaluate_retrieval.py configs/retriever.yaml \
+    --set retrieval.baselines=[dense] \
+          retrieval.checkpoint=runs/retriever_b128/checkpoints/best.pt
+```
+
+The architecture is rebuilt from the checkpoint's own snapshotted config, so the
+config driving the evaluation cannot silently redefine the model being scored.
+Results merge into `runs/_baselines/<split>.json` rather than replacing it.
+
+**Measured first run** (`runs/retriever_b128`, 20k steps, batch 128, 64.7 min on an
+RTX 5060): loss 4.85 → 1.43, in-batch `val/recall@1` → 0.4998, still rising at the
+step limit rather than converged.
+
+Scored properly, it reaches **recall@1 0.1707** within-product — *below* every BM25
+variant and well below `overlap`'s 0.2149. The two numbers measure different things:
+in-batch ranking only needs to tell a camera review from a blender review, while
+within-product ranking has to pick the right snippet out of nine that all discuss the
+same product. This run used in-batch negatives only (`loss.hard_negatives=0`), so the
+model was never trained on the harder distinction. That gap is the motivating result
+for hard negatives, and quoting 0.4998 beside the baseline table would misreport it.
+
 ## Layout
 
 ```
@@ -151,7 +178,7 @@ src/qar/
   config.py       typed config, YAML inheritance, CLI overrides
   registry.py     name -> component lookup, so configs can swap parts
   data/           corpus preparation, BPE, splitting, dataset + collator
-  tasks/          trainable tasks (dev_toy today; retriever next)
+  tasks/          trainable tasks (dev_toy, retriever)
   training/       trainer, task interface, schedules, checkpointing
   eval/           ranking and classification metrics
   utils/          seeding, device/AMP, logging
@@ -187,10 +214,13 @@ Each run directory contains:
 
 - [x] Harness: config, seeding, AMP, trainer, checkpoint/resume, logging, sweeps, tests
 - [x] Split validated (leakage checked)
-- [x] Data pipeline: pair construction, BPE tokenizer, asin-based val/test split
+- [x] Data pipeline: pair construction, BPE tokenizer, upstream train/val/test splits
 - [x] Lexical baselines (random, first, overlap, three BM25 variants)
 - [x] From-scratch bi-encoder + InfoNCE, de-duplicating batch sampler, answerability head
-- [ ] A real GPU training run
-- [ ] Hard negative mining
+- [x] `dense` retriever: scores a checkpoint through the same within-product path
+      as the baselines, so a run produces a directly comparable number
+- [x] A real GPU training run (`runs/retriever_b128`, 20k steps, 64.7 min)
+- [ ] A longer run — the curve was still rising when `max_steps` cut it off
+- [ ] Hard negative mining from the retriever itself (row-private negatives already exist)
 - [ ] Ablations → DL report
 - [ ] Generation, grounding evaluation, abstention → NLP report

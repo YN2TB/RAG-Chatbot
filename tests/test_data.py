@@ -72,11 +72,35 @@ def _corpus(tmp_path, n_products=12):
     return _write(tmp_path / "raw_train.jsonl", train), _write(tmp_path / "raw_val.jsonl", val)
 
 
+def _test_corpus(tmp_path, n_products=8):
+    """A separate test file, product-disjoint from `_corpus`, as upstream ships."""
+    rows = [
+        _raw_row(
+            f"s{p}", f"TESTP{p:03d}",
+            f"does the lid of jar {p} seal tightly enough for liquids",
+            [
+                f"the lid on jar {p} seals tightly and has never leaked any liquid so far",
+                f"label of jar {p} peeled off in the dishwasher after only a few washes",
+            ],
+            [f"yes the lid on jar {p} seals tightly and holds liquids"],
+        )
+        for p in range(n_products)
+    ]
+    return _write(tmp_path / "raw_test.jsonl", rows)
+
+
 def _cfg(tmp_path, **overrides):
+    """Config over the synthetic corpus, in the carve-test-out-of-val regime.
+
+    `data.test_path` is nulled because the repo default names the real upstream
+    file, which is not present under `tmp_path`. Tests that want the upstream
+    regime pass `data.test_path` explicitly.
+    """
     train, val = _corpus(tmp_path)
     base = [
         f"data.train_path={train.as_posix()}",
         f"data.val_path={val.as_posix()}",
+        "data.test_path=null",
         f"data.processed_dir={(tmp_path / 'processed').as_posix()}",
         "model.vocab_size=800",
         "prepare.tokenizer_sample_docs=500",
@@ -191,6 +215,37 @@ def test_prepare_routes_validation_into_both_splits(tmp_path):
     assert val + test == 12
 
 
+def test_upstream_test_file_keeps_validation_whole(tmp_path):
+    """With a real test file, val must not be halved to manufacture one."""
+    raw_test = _test_corpus(tmp_path)
+    manifest = prepare(_cfg(tmp_path, **{"data.test_path": raw_test.as_posix()}))
+
+    assert manifest["test_source"] == "upstream_file"
+    assert manifest["splits"]["val"]["kept"] == 12, "validation was carved up anyway"
+    assert manifest["splits"]["test"]["kept"] == 8, "test did not come from the test file"
+    assert manifest["leakage"]["asin_overlap_val_test"] == 0
+
+
+def test_test_fraction_is_nulled_when_it_did_not_apply(tmp_path):
+    """A manifest must not record a carve that never happened."""
+    raw_test = _test_corpus(tmp_path)
+    upstream = prepare(_cfg(tmp_path, **{"data.test_path": raw_test.as_posix()}))
+    assert upstream["prepare"]["test_fraction"] is None
+    assert upstream["sources"]["test"] is not None
+
+    carved = prepare(_cfg(tmp_path))
+    assert carved["test_source"] == "carved_from_val"
+    assert carved["prepare"]["test_fraction"] == 0.5
+    assert carved["sources"]["test"] is None
+
+
+def test_missing_test_file_raises_rather_than_downgrading(tmp_path):
+    """A configured-but-absent test file must not silently fall back to carving."""
+    cfg = _cfg(tmp_path, **{"data.test_path": (tmp_path / "absent.jsonl").as_posix()})
+    with pytest.raises(FileNotFoundError, match="data.test_path"):
+        prepare(cfg)
+
+
 def test_prepare_selects_the_supporting_snippet(tmp_path):
     prepare(_cfg(tmp_path))
     records = [
@@ -227,7 +282,7 @@ def test_unparseable_rows_are_counted_once_per_source(tmp_path):
     )
     manifest = prepare(cfg)
 
-    assert manifest["malformed_rows"] == {"train": 0, "val": 1}
+    assert manifest["malformed_rows"] == {"train": 0, "val": 1, "test": 0}
     splits = manifest["splits"]
     assert splits["val"]["rows_read"] + splits["test"]["rows_read"] == 12
 

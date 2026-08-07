@@ -66,7 +66,7 @@ These tests read the real configs, so `configs/*.yaml` is part of the test
 contract:
 
 - `configs/base.yaml`: `optim.scheduler == "cosine"`, `optim.lr == 3e-4`,
-  `data.train_path` ends with `amazonqa_train.jsonl`. `test_data.py` also loads it as
+  `data.train_path` ends with `train-qar.jsonl`. `test_data.py` also loads it as
   the base for every prepare test, so a new `prepare.*` field needs a sane default
   there or the whole data suite goes red
 - `configs/dev.yaml`: `name == "dev"`, `train.max_steps == 300`, and it must not
@@ -83,8 +83,14 @@ suite that looks like a code regression. Change both, in the same commit.
 - **CPU only.** Every smoke test forces `device=cpu`, `train.amp=off`,
   `data.num_workers=0`. Nothing here may require CUDA or Windows-specific
   behaviour.
-- **No corpus.** Tests must never touch the 3.4 GB `*.jsonl` files. Synthetic data
-  from `dev_toy` is the only data source.
+- **No corpus.** Tests must never touch the raw `*.jsonl` files. Synthetic data
+  written into `tmp_path` is the only data source. **`conftest.py` now enforces
+  this**: an autouse fixture wraps `open` and raises if a test reaches for
+  `train-qar.jsonl`, `val-qar.jsonl` or `test-qar_all.jsonl`. It exists because the
+  prose rule alone did not hold — when `data.test_path` gained a real default,
+  every prepare helper that forgot to null it silently began reading the 751 MB
+  test file, and the suite hung rather than failed. Any new prepare helper must
+  pass `data.test_path=null` or point at a fixture.
 - **`out_dir` is always `tmp_path`.** Use the `_cfg` helper in `test_smoke.py`.
 - The numeric thresholds (0.7, 0.5, `rel=0.35`) are loose on purpose — they catch
   a broken loop without going flaky on a seed. Tighten only with evidence, and

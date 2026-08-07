@@ -1,0 +1,35 @@
+# Hard negatives: the experiment the first trained run argued for.
+#
+# In-batch negatives come from other products, so rejecting one needs only topic
+# recognition. Hard negatives come from the row's own product and share all of its
+# vocabulary, so rejecting one needs relevance. Trained on in-batch alone the model
+# reached 0.4998 in-batch and 0.1707 within-product -- below plain token overlap.
+#
+# MEASURED CEILING on 8 GB at batch 128: hard_negatives=2 uses 6,425 MiB and runs at
+# 2.32 steps/s. hard_negatives=4 reports 9,757 MiB, spills to system RAM and collapses
+# to 0.16 steps/s (~36 h for 20k steps). Do not add a 4 here without dropping the
+# batch size -- and note that dropping it also changes the in-batch negative count,
+# so the two are not a clean comparison.
+# READ THIS BEFORE INTERPRETING THE TABLE. `val/recall@1` in metrics.jsonl is NOT
+# comparable across the cells of this grid. `validation_step` scores the same matrix
+# training does, so a cell with hard_negatives=n ranks over B+n candidates, and the n
+# extra ones are same-product distractors -- a strictly harder question than the
+# hard_negatives=0 cell answers. Measured at step 1000: hn=0 logged 0.1611 and hn=2
+# logged 0.1145, which says the metric changed, not that the model got worse.
+#
+# Only `within_recall@1` compares cells here, because every cell is scored on the
+# same ~9-candidate product pool regardless of how it was trained.
+config: configs/retriever.yaml
+prefix: negatives
+monitor: val/recall@1        # training-health only; see the warning above
+monitor_mode: max
+
+grid:
+  loss.hard_negatives: [0, 1, 2]
+
+fixed:
+  - data.batch_size=128
+
+evaluate:
+  split: val
+  max_rows: 20000

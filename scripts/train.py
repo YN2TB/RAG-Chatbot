@@ -13,12 +13,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from qar import tasks  # noqa: F401,E402  (registers every task)
-from qar.config import load_config  # noqa: E402
-from qar.registry import build  # noqa: E402
-from qar.training.trainer import Trainer  # noqa: E402
-from qar.utils.logging import get_logger, setup_logging  # noqa: E402
-from qar.utils.seed import seed_everything  # noqa: E402
+from qar import tasks  # noqa: F401  (registers every task)
+from qar.config import load_config
+from qar.registry import build
+from qar.training.trainer import Trainer
+from qar.utils.logging import get_logger, setup_logging
+from qar.utils.seed import seed_everything
 
 
 def main() -> None:

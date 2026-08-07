@@ -1,15 +1,20 @@
 """One offline pass that turns the raw corpus into everything training needs.
 
-Reads the two raw JSONL files, infers a positive snippet per question, fits the
-BPE vocabulary, carves an asin-disjoint test set out of validation, and records
-what it did in a manifest.
+Reads the raw JSONL files, infers a positive snippet per question, fits the BPE
+vocabulary, and records what it did in a manifest.
 
 Every number the report quotes about the *data* -- how many rows survived, how
 many had no trustworthy positive, how the answerable classes fell -- comes from
 that manifest rather than from a notebook cell that no longer exists.
 
     train file --> train.jsonl  (+ the text sample the tokenizer is fitted on)
-    val file   --> val.jsonl / test.jsonl, split by hashed asin
+    val file   --> val.jsonl
+    test file  --> test.jsonl
+
+The upstream corpus ships a product-disjoint test file, so each split is simply
+its own pass. When `data.test_path` is null the older fallback applies instead:
+validation is divided by hashed asin, which keeps each product whole but costs
+half the validation rows.
 """
 
 from __future__ import annotations
@@ -83,6 +88,16 @@ def prepare(cfg: RunConfig) -> dict[str, Any]:
         if not path.exists():
             raise FileNotFoundError(f"raw corpus not found: {path.resolve()}")
 
+    # A configured-but-missing test file is an error, not a silent downgrade to the
+    # carve-from-val fallback: the two produce different corpora, and discovering
+    # that from a manifest after a 20-minute run is too late.
+    raw_test = Path(cfg.data.test_path) if cfg.data.test_path else None
+    if raw_test is not None and not raw_test.exists():
+        raise FileNotFoundError(
+            f"data.test_path is set but not found: {raw_test.resolve()}\n"
+            "Set data.test_path=null to carve a test split out of validation instead."
+        )
+
     out_dir = Path(cfg.data.processed_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     selector = _resolve_selector(cfg.prepare.selector)
@@ -100,26 +115,54 @@ def prepare(cfg: RunConfig) -> dict[str, Any]:
     log.info("fitting BPE (vocab=%d) on %d sampled texts", cfg.model.vocab_size, len(sample))
     train_tokenizer(sample.items, cfg.model.vocab_size, out_dir / "tokenizer.json")
 
-    # -- pass 2: validation, split by asin --------------------------------- #
-    with (out_dir / "val.jsonl").open("w", encoding="utf-8") as val_handle, \
-         (out_dir / "test.jsonl").open("w", encoding="utf-8") as test_handle:
-        eval_stats, eval_malformed = _write_split(
-            raw_val, {"val": val_handle, "test": test_handle}, cfg, selector,
-            route=lambda row: assign_split(
-                row.asin, cfg.prepare.test_fraction, cfg.prepare.split_seed
-            ),
-        )
+    # -- pass 2: evaluation splits ----------------------------------------- #
+    if raw_test is None:
+        # Fallback: no upstream test file, so carve one out of validation. Hashing
+        # the asin keeps every product whole on one side.
+        with (out_dir / "val.jsonl").open("w", encoding="utf-8") as val_handle, \
+             (out_dir / "test.jsonl").open("w", encoding="utf-8") as test_handle:
+            eval_stats, val_malformed = _write_split(
+                raw_val, {"val": val_handle, "test": test_handle}, cfg, selector,
+                route=lambda row: assign_split(
+                    row.asin, cfg.prepare.test_fraction, cfg.prepare.split_seed
+                ),
+            )
+        val_stats, test_stats = eval_stats["val"], eval_stats["test"]
+        test_malformed = 0
+    else:
+        # The upstream test file is already product-disjoint from both train and
+        # validation, so validation is kept whole and each file is simply copied
+        # through its own pass.
+        with (out_dir / "val.jsonl").open("w", encoding="utf-8") as handle:
+            stats, val_malformed = _write_split(
+                raw_val, {"val": handle}, cfg, selector, route=lambda row: "val",
+            )
+        val_stats = stats["val"]
+        with (out_dir / "test.jsonl").open("w", encoding="utf-8") as handle:
+            stats, test_malformed = _write_split(
+                raw_test, {"test": handle}, cfg, selector, route=lambda row: "test",
+            )
+        test_stats = stats["test"]
 
     manifest = {
         "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "elapsed_s": round(time.time() - started, 1),
-        "sources": {"train": str(raw_train), "val": str(raw_val)},
+        "sources": {
+            "train": str(raw_train),
+            "val": str(raw_val),
+            "test": str(raw_test) if raw_test is not None else None,
+        },
+        # Which of the two split regimes produced test.jsonl. Corpora built under
+        # different regimes have different val sizes and are not comparable.
+        "test_source": "upstream_file" if raw_test is not None else "carved_from_val",
         "prepare": {
             "selector": cfg.prepare.selector,
             "min_positive_score": cfg.prepare.min_positive_score,
             "min_snippet_tokens": cfg.prepare.min_snippet_tokens,
             "max_snippets": cfg.prepare.max_snippets,
-            "test_fraction": cfg.prepare.test_fraction,
+            # Meaningless under the upstream regime; recorded as null so a manifest
+            # cannot suggest a carve that never happened.
+            "test_fraction": cfg.prepare.test_fraction if raw_test is None else None,
             "split_seed": cfg.prepare.split_seed,
             "max_rows": cfg.prepare.max_rows,
         },
@@ -127,13 +170,15 @@ def prepare(cfg: RunConfig) -> dict[str, Any]:
         "ignored_raw_fields": list(BASELINE_FIELDS),
         # Counted per source file, not per split: a row that will not parse has no
         # asin, so there is no split it could honestly be attributed to.
-        "malformed_rows": {"train": train_malformed, "val": eval_malformed},
+        "malformed_rows": {
+            "train": train_malformed, "val": val_malformed, "test": test_malformed
+        },
         "splits": {
             "train": train_stats.to_dict(),
-            "val": eval_stats["val"].to_dict(),
-            "test": eval_stats["test"].to_dict(),
+            "val": val_stats.to_dict(),
+            "test": test_stats.to_dict(),
         },
-        "leakage": _leakage_report(train_stats, eval_stats["val"], eval_stats["test"]),
+        "leakage": _leakage_report(train_stats, val_stats, test_stats),
     }
     (out_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -251,9 +296,13 @@ def _iter_json(path: Path, max_rows: int | None) -> Iterator[dict[str, Any]]:
 def _leakage_report(train: SplitStats, val: SplitStats, test: SplitStats) -> dict[str, Any]:
     """The check the whole split design exists to pass.
 
-    Product overlap must be ~0 between every pair. Question overlap is expected and
-    is not leakage: generic phrasing ("does it fit?") recurs across products whose
-    reviews are disjoint.
+    Product overlap must be ~0 between every pair. Under the carve-from-val regime
+    `asin_overlap_val_test` is exactly 0 by construction; under the upstream regime
+    it is small but non-zero (15 products in the raw files), inherited from how the
+    corpus authors built their splits rather than introduced here.
+
+    Question overlap is expected and is **not** leakage: generic phrasing ("does it
+    fit?") recurs across products whose reviews are disjoint.
     """
     return {
         "asin_overlap_train_val": len(train.asins & val.asins),

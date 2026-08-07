@@ -8,8 +8,9 @@ device: auto
 out_dir: runs
 
 data:
-  train_path: amazonqa_train.jsonl
-  val_path: amazonqa_validation.jsonl
+  train_path: train-qar.jsonl
+  val_path: val-qar.jsonl
+  test_path: test-qar_all.jsonl   # null -> carve test out of val by hashed asin
   processed_dir: data/processed
   batch_size: 64
   eval_batch_size: 128
@@ -26,7 +27,7 @@ prepare:
   min_positive_score: 0.10
   min_snippet_tokens: 5
   max_snippets: 32
-  test_fraction: 0.5
+  test_fraction: 0.5              # only used when data.test_path is null
   split_seed: 20260731
   tokenizer_sample_docs: 400000
   max_rows: null

@@ -121,6 +121,23 @@ A pool with one usable snippet has no same-product negative. That slot is emitte
 a placeholder and masked to `-inf`, leaving the softmax rather than pretending to be
 a candidate.
 
+#### `val/recall@1` cannot compare two `hard_negatives` settings
+
+`validation_step` scores the same matrix training does, so a run with
+`hard_negatives=n` validates over `B + n` candidates and the extra `n` are
+same-product distractors. That is a **strictly harder question** than the
+`hard_negatives=0` run answers, not the same question with a better model.
+
+Measured at step 1000, batch 128: `hard_negatives=0` logged `val/recall@1` 0.1611
+and `hard_negatives=2` logged 0.1145. Reading that as "hard negatives hurt" would be
+exactly backwards — the metric changed underneath the comparison.
+
+The negatives ablation is therefore only interpretable through
+`scripts/evaluate_retrieval.py`, where every cell is scored on the same ~9-candidate
+product pool no matter how it was trained. `sweeps/negatives.yaml` carries this
+warning too, and `sweep.py`'s `evaluate:` block is what produces the comparable
+column.
+
 ## Rules
 
 - One task per module, named after the task.

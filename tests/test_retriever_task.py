@@ -79,6 +79,10 @@ def _cfg(tmp_path, **overrides):
     base = [
         f"data.train_path={raw_train.as_posix()}",
         f"data.val_path={raw_val.as_posix()}",
+        # Without this, prepare falls through to the repo default and reads the real
+        # 751 MB test-qar_all.jsonl from the repo root -- a test suite that touches
+        # the corpus, and minutes per test.
+        "data.test_path=null",
         f"data.processed_dir={(tmp_path / 'processed').as_posix()}",
         f"out_dir={tmp_path.as_posix()}",
         "device=cpu", "train.amp=off", "data.num_workers=0",

@@ -86,6 +86,31 @@ def _plain(value: Any) -> Any:
     return value
 
 
+def read_series(path: Path, key: str) -> list[tuple[int, float]]:
+    """Every `(step, value)` for one metric, with rewinds resolved, step-ordered.
+
+    `metrics.jsonl` is append-only, which is what lets a resumed run keep the curve
+    from before the crash. The cost is that resuming rewinds to the checkpoint's
+    step while the records from the abandoned tail stay in the file, so a step can
+    carry two different values from two different trajectories.
+
+    The later record wins: appends are chronological, so the last value written for
+    a step is the one the surviving run actually produced. Reading the raw file
+    instead gives a curve that jumps backwards, and a "best" that may come from a
+    trajectory that was thrown away.
+    """
+    latest: dict[int, float] = {}
+    with Path(path).open(encoding="utf-8") as handle:
+        for line in handle:
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if key in record and "step" in record:
+                latest[int(record["step"])] = record[key]
+    return sorted(latest.items())
+
+
 def format_metrics(metrics: dict[str, Any]) -> str:
     parts = []
     for k, v in metrics.items():

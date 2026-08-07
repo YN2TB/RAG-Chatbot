@@ -10,7 +10,7 @@ import torch
 from qar.config import load_config
 from qar.data.dataset import PairDataset
 from qar.registry import available, build
-from qar.retrieval.evaluate import _pad, evaluate_retriever, markdown_table
+from qar.retrieval.evaluate import _pad, evaluate_retriever, markdown_table, merge_results
 from qar.retrieval.idf import build_document_frequencies, idf_lookup, load_idf, save_idf
 
 
@@ -315,3 +315,270 @@ def test_metrics_come_from_the_shared_implementation(tmp_path):
     matrix = _pad([[0.1, 0.9], [0.9, 0.1]])
     direct = ranking_metrics(matrix, torch.tensor([1, 0]), ks=(1,))
     assert direct["recall@1"] == pytest.approx(1.0)
+
+
+# -- dense (the trained retriever) ------------------------------------------ #
+
+
+def _tiny_checkpoint(tmp_path):
+    """Train nothing; just save a real BiEncoder so the loader has honest weights.
+
+    The point of these tests is the plumbing -- config, checkpoint, tokenizer,
+    padding, tower routing -- not retrieval quality, which needs a real run.
+    """
+    from qar.data.tokenizer import load_tokenizer, pad_id, train_tokenizer
+    from qar.training.checkpoint import save_checkpoint
+
+    processed = tmp_path / "processed"
+    processed.mkdir(parents=True, exist_ok=True)
+
+    # The project's own trainer, so the [PAD] token and byte-level settings match
+    # what a real prepared corpus produces.
+    train_tokenizer(
+        ["the strap detaches by hand without tools", "battery lasts about nine hours"] * 40,
+        300,
+        processed / "tokenizer.json",
+    )
+    tokenizer = load_tokenizer(processed / "tokenizer.json")
+
+    cfg = _cfg(
+        tmp_path,
+        **{
+            "data.processed_dir": processed.as_posix(),
+            "model.name": "biencoder", "model.vocab_size": 300,
+            "model.d_model": 32, "model.n_layers": 1, "model.n_heads": 2,
+            "model.d_ff": 64, "model.max_len": 32, "model.dropout": 0.0,
+            "data.max_query_len": 16, "data.max_doc_len": 16,
+            "device": "cpu", "train.amp": "off",
+        },
+    )
+    model = build("model", "biencoder", cfg, pad_id(tokenizer))
+    path = tmp_path / "ckpt.pt"
+    save_checkpoint(path, model=model, step=7, config=cfg.to_dict())
+    return cfg, path
+
+
+def test_dense_is_registered():
+    assert "dense" in available("retriever")
+
+
+def test_dense_requires_a_checkpoint(tmp_path):
+    cfg = _cfg(tmp_path, **{"retrieval.checkpoint": "null"})
+    with pytest.raises(ValueError, match="retrieval.checkpoint"):
+        build("retriever", "dense", cfg)
+
+
+def test_dense_reports_a_missing_checkpoint(tmp_path):
+    cfg = _cfg(tmp_path, **{"retrieval.checkpoint": (tmp_path / "absent.pt").as_posix()})
+    with pytest.raises(FileNotFoundError):
+        build("retriever", "dense", cfg)
+
+
+def test_dense_scores_one_value_per_document(tmp_path):
+    cfg, ckpt = _tiny_checkpoint(tmp_path)
+    cfg = _cfg(
+        tmp_path,
+        **{
+            "retrieval.checkpoint": ckpt.as_posix(),
+            "data.processed_dir": (tmp_path / "processed").as_posix(),
+            "device": "cpu", "train.amp": "off",
+        },
+    )
+    retriever = build("retriever", "dense", cfg)
+
+    pool = ["the strap detaches by hand", "battery lasts nine hours", "arrived quickly"]
+    scores = retriever.scores("is the strap removable", pool)
+
+    assert len(scores) == len(pool)
+    assert all(-1.001 <= s <= 1.001 for s in scores), f"not cosines: {scores}"
+    assert retriever.scores("anything", []) == []
+
+
+def test_dense_rebuilds_architecture_from_the_checkpoint(tmp_path):
+    """A checkpoint must be scored with its own architecture, not the caller's.
+
+    Without this the evaluating config silently decides the model shape, and a
+    mismatched pooling or width would load cleanly and rank nonsense.
+    """
+    _, ckpt = _tiny_checkpoint(tmp_path)
+    cfg = _cfg(
+        tmp_path,
+        **{
+            "retrieval.checkpoint": ckpt.as_posix(),
+            "data.processed_dir": (tmp_path / "processed").as_posix(),
+            "device": "cpu", "train.amp": "off",
+            # Deliberately wrong: the checkpoint was saved at d_model=32, 1 layer.
+            "model.name": "biencoder", "model.d_model": 384, "model.n_layers": 6,
+        },
+    )
+    retriever = build("retriever", "dense", cfg)
+    assert retriever.max_query_len == 16, "took max_query_len from the caller's config"
+    assert len(retriever.scores("is the strap removable", ["a b c", "d e f"])) == 2
+
+
+# -- results merging -------------------------------------------------------- #
+
+
+def _table(path, results):
+    path.write_text(json.dumps({"results": results}), encoding="utf-8")
+    return path
+
+
+def test_merge_returns_fresh_when_no_file(tmp_path):
+    fresh = {"dense": {"rows": 100, "overall": {}}}
+    assert merge_results(tmp_path / "absent.json", fresh) == fresh
+
+
+def test_merge_keeps_earlier_rows_measured_on_the_same_split(tmp_path):
+    """The regression: scoring one retriever used to delete the whole table."""
+    path = _table(tmp_path / "val.json", {
+        "overlap": {"rows": 87475, "overall": {"recall@1": 0.2149}},
+        "bm25": {"rows": 87475, "overall": {"recall@1": 0.1771}},
+    })
+    merged = merge_results(path, {"dense": {"rows": 87475, "overall": {"recall@1": 0.3}}})
+
+    assert set(merged) == {"overlap", "bm25", "dense"}
+    assert list(merged)[-1] == "dense", "the fresh row should end the table"
+    assert merged["overlap"]["overall"]["recall@1"] == 0.2149
+
+
+def test_merge_drops_rows_from_a_different_split_size(tmp_path):
+    """A max_rows probe must not sit beside a full-split number unmarked."""
+    path = _table(tmp_path / "val.json", {
+        "dense": {"rows": 2000, "overall": {"recall@1": 0.1695}},
+        "overlap": {"rows": 87475, "overall": {"recall@1": 0.2149}},
+    })
+    merged = merge_results(path, {"bm25": {"rows": 87475, "overall": {"recall@1": 0.1771}}})
+
+    assert "dense" not in merged, "a 2000-row probe was kept beside 87475-row rows"
+    assert set(merged) == {"overlap", "bm25"}
+
+
+def test_merge_supersedes_a_rerun_retriever(tmp_path):
+    path = _table(tmp_path / "val.json", {"dense": {"rows": 50, "overall": {"recall@1": 0.1}}})
+    merged = merge_results(path, {"dense": {"rows": 50, "overall": {"recall@1": 0.4}}})
+    assert merged["dense"]["overall"]["recall@1"] == 0.4
+
+
+def test_merge_survives_a_corrupt_file(tmp_path):
+    path = tmp_path / "val.json"
+    path.write_text("{not json", encoding="utf-8")
+    fresh = {"dense": {"rows": 10, "overall": {}}}
+    assert merge_results(path, fresh) == fresh
+
+
+# -- batched scoring -------------------------------------------------------- #
+
+
+def test_score_batch_defaults_to_the_per_row_loop(tmp_path):
+    """Lexical baselines inherit the default and must be unaffected by batching."""
+    overlap = build("retriever", "overlap", _cfg(tmp_path))
+    queries = ["does the strap detach", "how long is the cord"]
+    pools = [["the strap detaches easily", "blue colour"], ["cord is two metres", "heavy box"]]
+
+    batched = overlap.score_batch(queries, pools)
+    per_row = [overlap.scores(q, p) for q, p in zip(queries, pools)]
+    assert batched == per_row
+
+
+def test_dense_batched_matches_per_row(tmp_path):
+    """The optimisation must not change a single score.
+
+    Batching pads documents from different rows to a common length, so this is
+    also an end-to-end check that padding cannot leak into a pooled vector.
+    """
+    _, ckpt = _tiny_checkpoint(tmp_path)
+    cfg = _cfg(
+        tmp_path,
+        **{
+            "retrieval.checkpoint": ckpt.as_posix(),
+            "data.processed_dir": (tmp_path / "processed").as_posix(),
+            "device": "cpu", "train.amp": "off",
+        },
+    )
+    retriever = build("retriever", "dense", cfg)
+
+    queries = ["is the strap removable", "battery life", "what colour"]
+    pools = [
+        ["the strap detaches by hand", "battery lasts nine hours", "arrived quickly"],
+        ["battery lasts nine hours"],
+        ["much darker than the photo shows in daylight", "tools are not needed"],
+    ]
+
+    batched = retriever.score_batch(queries, pools)
+    per_row = [retriever.scores(q, p) for q, p in zip(queries, pools)]
+
+    assert len(batched) == len(per_row)
+    for got, want in zip(batched, per_row):
+        assert got == pytest.approx(want, abs=1e-4), "batching changed a score"
+
+
+def test_dense_batched_handles_empty_pools(tmp_path):
+    _, ckpt = _tiny_checkpoint(tmp_path)
+    cfg = _cfg(
+        tmp_path,
+        **{
+            "retrieval.checkpoint": ckpt.as_posix(),
+            "data.processed_dir": (tmp_path / "processed").as_posix(),
+            "device": "cpu", "train.amp": "off",
+        },
+    )
+    retriever = build("retriever", "dense", cfg)
+
+    assert retriever.score_batch([], []) == []
+    assert retriever.score_batch(["q"], [[]]) == [[]]
+    mixed = retriever.score_batch(["q1", "q2"], [[], ["a real document here"]])
+    assert mixed[0] == [] and len(mixed[1]) == 1
+
+
+def test_batch_rows_does_not_change_the_metrics(tmp_path):
+    """Chunk size is a performance knob; results must be identical across values."""
+    records = [
+        _record(f"q{i}", f"question about item {i} and its battery",
+                [f"battery of item {i} lasts nine hours", f"box for item {i} was damaged"], 0)
+        for i in range(7)
+    ]
+    dataset = _split(tmp_path, records)
+
+    out = []
+    for chunk in (1, 3, 256):
+        cfg = _cfg(tmp_path, **{"retrieval.batch_rows": chunk})
+        out.append(evaluate_retriever(cfg, build("retriever", "overlap", cfg), dataset))
+
+    assert out[0]["overall"] == out[1]["overall"] == out[2]["overall"]
+    assert out[0]["rows"] == 7
+
+
+def test_encode_batch_does_not_change_scores(tmp_path):
+    """Length-sorted sub-batching reorders the encoder's input; results must not move.
+
+    This is the guard on the optimisation that replaced a naive one-big-batch
+    implementation which was slower than scoring row by row.
+    """
+    _, ckpt = _tiny_checkpoint(tmp_path)
+
+    def retriever_with(encode_batch):
+        cfg = _cfg(
+            tmp_path,
+            **{
+                "retrieval.checkpoint": ckpt.as_posix(),
+                "data.processed_dir": (tmp_path / "processed").as_posix(),
+                "retrieval.encode_batch": encode_batch,
+                "device": "cpu", "train.amp": "off",
+            },
+        )
+        return build("retriever", "dense", cfg)
+
+    queries = ["is the strap removable", "battery life", "what colour is it really"]
+    pools = [
+        ["short one", "a considerably longer document about straps and tools and hands",
+         "medium length document here"],
+        ["battery lasts nine hours"],
+        ["much darker than the photograph shows in daylight", "tiny"],
+    ]
+
+    reference = retriever_with(1).score_batch(queries, pools)
+    for size in (2, 3, 64):
+        got = retriever_with(size).score_batch(queries, pools)
+        for row_got, row_want in zip(got, reference):
+            assert row_got == pytest.approx(row_want, abs=1e-4), f"encode_batch={size} moved a score"

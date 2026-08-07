@@ -22,7 +22,7 @@ from qar import retrieval  # noqa: F401  (registers every baseline)
 from qar.config import load_config
 from qar.data.dataset import PairDataset
 from qar.registry import build
-from qar.retrieval.evaluate import evaluate_retriever, markdown_table
+from qar.retrieval.evaluate import evaluate_retriever, markdown_table, merge_results
 from qar.utils.logging import get_logger, setup_logging
 
 
@@ -51,18 +51,19 @@ def main() -> None:
 
     out_dir = Path(cfg.out_dir) / "_baselines"
     out_dir.mkdir(parents=True, exist_ok=True)
+    stem = cfg.retrieval.out_name or cfg.retrieval.split
+    json_path = out_dir / f"{stem}.json"
+
     payload = {
         "split": cfg.retrieval.split,
         "processed_dir": cfg.data.processed_dir,
         "bm25": {"k1": cfg.retrieval.bm25_k1, "b": cfg.retrieval.bm25_b},
         "tie_break_seed": cfg.retrieval.tie_break_seed,
-        "results": results,
+        "results": merge_results(json_path, results),
     }
-    (out_dir / f"{cfg.retrieval.split}.json").write_text(
-        json.dumps(payload, indent=2), encoding="utf-8"
-    )
-    table = markdown_table(results, cfg.retrieval.ks)
-    (out_dir / f"{cfg.retrieval.split}.md").write_text(table + "\n", encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    table = markdown_table(payload["results"], cfg.retrieval.ks)
+    (out_dir / f"{stem}.md").write_text(table + "\n", encoding="utf-8")
 
     print(f"\npool size: {next(iter(results.values()))['mean_pool']} candidates on average\n")
     print(table)

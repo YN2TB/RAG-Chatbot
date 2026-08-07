@@ -35,8 +35,13 @@ Resolution order, in this order and no other:
 4. `_coerce` — each scalar cast to its annotated field type, `Optional` unwrapped.
 
 Public surface: `RunConfig`, the section dataclasses (`DataConfig`, `PrepareConfig`,
-`ModelConfig`, `LossConfig`, `OptimConfig`, `TrainConfig`), `load_config`,
-`apply_overrides`.
+`ModelConfig`, `LossConfig`, `OptimConfig`, `TrainConfig`, `RetrievalConfig`),
+`load_config`, `apply_overrides`, `config_from_dict`.
+
+`config_from_dict` rebuilds a `RunConfig` from a plain dict with the same
+validation, and exists for one caller: `retrieval/dense.py`, recovering a
+checkpoint's own architecture from its snapshot so the config driving an evaluation
+cannot silently redefine the model being scored.
 
 `PrepareConfig` describes the *offline* corpus build and is read only by
 `scripts/prepare_data.py`. It lives in `RunConfig` anyway so it is typed, defaulted

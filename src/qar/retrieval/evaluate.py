@@ -17,7 +17,9 @@ that averages chunks slightly differently.
 
 from __future__ import annotations
 
+import json
 import random
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -39,20 +41,29 @@ def evaluate_retriever(cfg: RunConfig, retriever, dataset: PairDataset) -> dict[
     question_types: list[str] = []
     answerable: list[int] = []
 
-    limit = cfg.retrieval.max_rows or len(dataset)
-    for index in range(min(limit, len(dataset))):
-        record = dataset[index]
-        pool = record["snippets"]
+    limit = min(cfg.retrieval.max_rows or len(dataset), len(dataset))
+    chunk = max(1, cfg.retrieval.batch_rows)
 
-        order = list(range(len(pool)))
-        rng.shuffle(order)
-        scores = retriever.scores(record["question"], [pool[i] for i in order])
+    # Rows are shuffled and grouped here, then handed to the retriever in chunks.
+    # The per-row semantics are identical -- `score_batch` defaults to the same loop
+    # -- but a neural retriever can encode a whole chunk in one forward pass.
+    for start in range(0, limit, chunk):
+        queries, pools = [], []
+        for index in range(start, min(start + chunk, limit)):
+            record = dataset[index]
+            pool = record["snippets"]
 
-        rows.append(scores)
-        targets.append(order.index(record["positive_idx"]))
-        pool_sizes.append(len(pool))
-        question_types.append(record["question_type"])
-        answerable.append(record["is_answerable"])
+            order = list(range(len(pool)))
+            rng.shuffle(order)
+
+            queries.append(record["question"])
+            pools.append([pool[i] for i in order])
+            targets.append(order.index(record["positive_idx"]))
+            pool_sizes.append(len(pool))
+            question_types.append(record["question_type"])
+            answerable.append(record["is_answerable"])
+
+        rows.extend(retriever.score_batch(queries, pools))
 
     if not rows:
         raise ValueError("split is empty; nothing to evaluate")
@@ -107,6 +118,50 @@ def _slices(question_types: list[str], answerable: list[int]):
 
 def _round(metrics: dict[str, float]) -> dict[str, float]:
     return {key: round(value, 4) for key, value in metrics.items()}
+
+
+def merge_results(path: Path, fresh: dict[str, Any]) -> dict[str, Any]:
+    """Fold fresh rows into whatever `path` already holds.
+
+    The results file is named after the split alone, so before this a run scoring a
+    single retriever replaced the entire table: evaluating a checkpoint with
+    `retrieval.baselines=[dense]` silently deleted six lexical rows that had cost
+    minutes to produce. Merging makes "measure the baselines once, add the trained
+    model later" the normal workflow instead of a footgun.
+
+    Rows measured over a **different number of rows** are dropped rather than kept.
+    They came from another corpus or from a `max_rows` probe, and a table putting
+    those beside a full-split number, with nothing on the line to say so, is worse
+    than a table missing them.
+    """
+    if not path.exists():
+        return fresh
+
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8")).get("results", {})
+    except (json.JSONDecodeError, OSError):
+        log.warning("%s is unreadable; starting a fresh table", path.name)
+        return fresh
+
+    rows = next(iter(fresh.values()))["rows"]
+    kept, dropped = {}, []
+    for name, result in previous.items():
+        if name in fresh:
+            continue  # superseded by this run
+        if result.get("rows") == rows:
+            kept[name] = result
+        else:
+            dropped.append(f"{name} ({result.get('rows')} rows)")
+
+    if dropped:
+        log.warning(
+            "dropped %d stale row(s) measured over a different split size: %s",
+            len(dropped), ", ".join(dropped),
+        )
+    if kept:
+        log.info("kept %d existing row(s): %s", len(kept), ", ".join(kept))
+
+    return {**kept, **fresh}  # fresh last, so the table ends with this run
 
 
 def markdown_table(results: dict[str, dict[str, Any]], ks: list[int]) -> str:

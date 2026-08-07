@@ -15,6 +15,7 @@ from qar import tasks  # noqa: F401  (registers dev_toy)
 from qar.config import load_config
 from qar.registry import available, build
 from qar.training.trainer import Trainer
+from qar.utils.logging import read_series
 from qar.utils.seed import seed_everything
 
 
@@ -118,3 +119,59 @@ def test_metrics_are_valid_jsonl(tmp_path):
         record = json.loads(line)
         assert "step" in record and "wall_s" in record
     assert (cfg.run_dir / "config.yaml").exists(), "run config was not snapshotted"
+
+
+def test_read_series_resolves_a_resume_rewind(tmp_path):
+    """A resumed run rewinds; the abandoned tail must not win.
+
+    metrics.jsonl is append-only, so resuming from step 200 leaves the interrupted
+    run's records for 300 and 400 in the file. Later records are the surviving
+    trajectory and must supersede them.
+    """
+    path = tmp_path / "metrics.jsonl"
+    records = [
+        {"step": 100, "val/recall@1": 0.10},
+        {"step": 200, "val/recall@1": 0.20},
+        {"step": 300, "val/recall@1": 0.95},   # abandoned trajectory
+        {"step": 400, "val/recall@1": 0.99},   # abandoned trajectory
+        {"step": 200, "event": "resume"},      # rewind marker, carries no metric
+        {"step": 300, "val/recall@1": 0.30},   # surviving trajectory
+        {"step": 400, "val/recall@1": 0.40},
+    ]
+    path.write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+
+    series = read_series(path, "val/recall@1")
+    assert series == [(100, 0.10), (200, 0.20), (300, 0.30), (400, 0.40)]
+    assert max(v for _, v in series) == 0.40, "a discarded trajectory won"
+
+
+def test_read_series_ignores_other_metrics_and_bad_lines(tmp_path):
+    path = tmp_path / "metrics.jsonl"
+    path.write_text(
+        json.dumps({"step": 1, "train/loss": 2.0}) + "\n"
+        + "{ not json\n"
+        + json.dumps({"step": 2, "val/loss": 1.0}) + "\n",
+        encoding="utf-8",
+    )
+    assert read_series(path, "train/loss") == [(1, 2.0)]
+    assert read_series(path, "val/loss") == [(2, 1.0)]
+    assert read_series(path, "absent") == []
+
+
+def test_resume_writes_a_rewind_marker(tmp_path):
+    """The log must say a rewind happened, or the duplicate steps are unexplained."""
+    cfg = _cfg(tmp_path, name="marker", **{"train.max_steps": 100, "train.save_every": 50})
+    seed_everything(cfg.seed)
+    Trainer(cfg, build("task", cfg.task, cfg)).train()
+
+    revived = Trainer(cfg, build("task", cfg.task, cfg))
+    revived.maybe_resume()
+
+    events = [
+        r for r in map(json.loads, (cfg.run_dir / "metrics.jsonl").read_text(
+            encoding="utf-8").splitlines())
+        if r.get("event") == "resume"
+    ]
+    assert len(events) == 1, "resume did not record a rewind marker"
+    assert events[0]["step"] == 100
+    assert events[0]["from_checkpoint"].endswith(".pt")

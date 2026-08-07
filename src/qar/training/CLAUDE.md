@@ -111,6 +111,13 @@ The scheduler advances once per optimizer step, not per micro-batch.
   `tests/test_smoke.py::test_train_scalars_are_not_scaled_by_grad_accum`.
 - **Duplicate final eval**, already fixed: when `max_steps` was a multiple of
   `eval_every` the last step logged twice. `_last_eval_step` guards it — keep it.
+- **Resume duplicates steps, by design.** Append-only is what lets a resumed run keep
+  the curve from before the crash, but rewinding to the checkpoint's step leaves the
+  interrupted run's later records in the file, so those steps hold two values from two
+  trajectories. `maybe_resume` logs an `{"event": "resume"}` marker; readers must go
+  through `qar.utils.logging.read_series`, which keeps the later record per step.
+  Do not "fix" this by truncating the log on resume — the pre-crash curve is the
+  reason the file is append-only in the first place.
 - An unknown scheduler name raises from inside `lr_lambda`, so with a non-zero
   warmup the error surfaces at the end of warmup rather than at construction.
 - `grad_clip > 0` calls `scaler.unscale_` first; with bf16 the scaler is disabled

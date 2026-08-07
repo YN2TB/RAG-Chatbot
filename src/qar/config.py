@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass, field, fields, is_dataclass
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any, get_args, get_origin, get_type_hints
 
@@ -20,8 +20,12 @@ import yaml
 
 @dataclass
 class DataConfig:
-    train_path: str = "amazonqa_train.jsonl"
-    val_path: str = "amazonqa_validation.jsonl"
+    train_path: str = "train-qar.jsonl"
+    val_path: str = "val-qar.jsonl"
+    # The upstream corpus ships its own product-disjoint test file. When it is
+    # present the validation file stays whole; set this to null to fall back to
+    # carving test out of validation by hashed asin (`prepare.test_fraction`).
+    test_path: str | None = "test-qar_all.jsonl"
     processed_dir: str = "data/processed"
     batch_size: int = 64
     eval_batch_size: int = 128
@@ -53,6 +57,8 @@ class PrepareConfig:
     min_positive_score: float = 0.10  # below this the row has no trustworthy positive
     min_snippet_tokens: int = 5  # drops "Great!"-style fragments from the pool
     max_snippets: int = 32  # bounds the pool; the median row has ~9
+    # Only consulted when `data.test_path` is null. Carving test out of validation
+    # by hashed asin was the fallback before the upstream test file was available.
     test_fraction: float = 0.5  # of the *validation* file, split by asin
     # Deliberately not `seed`: changing a run's seed must never reshuffle the split.
     split_seed: int = 20260731
@@ -87,6 +93,22 @@ class RetrievalConfig:
     # than defaulting to snippet 0 and silently importing the `first` baseline.
     tie_break_seed: int = 12345
     max_rows: int | None = None
+    # Required by the `dense` retriever and ignored by every other one. The
+    # architecture is rebuilt from the checkpoint's own snapshotted config, so this
+    # path alone determines what is scored.
+    checkpoint: str | None = None
+    # Rows handed to `Retriever.score_batch` at once. Irrelevant to the lexical
+    # baselines, which ignore the grouping; it is what makes `dense` practical to
+    # run across an ablation grid.
+    batch_rows: int = 256
+    # Texts per encoder forward pass, after length sorting. Bounds VRAM independently
+    # of `batch_rows`: at 256 rows a single unbounded pass allocated 7.7 GiB of 8.1 on
+    # the 5060 and thrashed. Purely a performance knob — it cannot change a score.
+    encode_batch: int = 256
+    # Basename for `runs/_baselines/<name>.{json,md}`. Defaults to the split. A sweep
+    # sets it per cell, so twenty checkpoints all scored as "dense" do not overwrite
+    # each other in one shared table.
+    out_name: str | None = None
 
 
 @dataclass
@@ -229,7 +251,7 @@ def _build(cls: type, data: dict[str, Any], path: str = "") -> Any:
     return cls(**kwargs)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _hints(cls: type) -> dict[str, Any]:
     return get_type_hints(cls)
 
@@ -289,6 +311,16 @@ def apply_overrides(data: dict[str, Any], overrides: list[str]) -> dict[str, Any
                 raise TypeError(f"cannot descend into scalar at '{key}'")
         node[parts[-1]] = _parse_scalar(value)
     return out
+
+
+def config_from_dict(data: dict[str, Any]) -> RunConfig:
+    """Rebuild a `RunConfig` from a plain dict, e.g. a checkpoint's snapshot.
+
+    Same validation as `load_config`: unknown keys raise, scalars are coerced. This
+    is how a saved run's own architecture is recovered when scoring its checkpoint,
+    so that the config driving the evaluation cannot silently redefine the model.
+    """
+    return _build(RunConfig, data)
 
 
 def load_config(path: str | Path, overrides: list[str] | None = None) -> RunConfig:
