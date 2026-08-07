@@ -30,7 +30,145 @@ means nothing without "val, within-product, mean pool 9.32".
 
 ---
 
+## 2026-08-08
+
+### Fault tolerance was throughput-dependent; now it has a wall-clock floor
+**What changed.** `train.save_every_minutes` (default 10.0, 0 disables) runs
+alongside `save_every`; whichever cadence comes first writes the checkpoint.
+`_rotating_save` restarts the timer on every save however triggered, so the two
+cannot stack into consecutive writes.
+**Why.** `save_every` counts steps, so the real time it protects varies with
+throughput. At `save_every=2000` that is ~7 minutes at hn=1's 4.5 steps/s but **~19
+minutes** at hn=2's 1.75 — the slowest and most expensive runs had the *weakest*
+protection, which is exactly backwards.
+**Evidence.** Two tests: one disables the step cadence entirely and asserts the timer
+alone still produces a checkpoint; the other sets the interval to 0 and asserts only
+the final checkpoint exists.
+**Consequences.** Worst-case loss from an interruption is now bounded by wall time
+rather than by whatever `steps/s` a configuration happens to run at — which matters
+most for the hard-negative and large-batch runs, the ones that cost hours. Cost is
+one extra ~550 MB write per 10 minutes, absorbed by `keep_last=2`.
+
+### The hard-negative curve saturates
+**What changed.** `runs/retriever_b128_hn1` — the missing middle point. All three
+cells now exist at batch 128 and `max_steps=20000`, so the schedules match and the
+curve is a controlled comparison.
+**Evidence.** val, within-product, 87,475 rows:
+
+| n | recall@1 | Δ | mrr | steps/s | VRAM |
+|---|---|---|---|---|---|
+| 0 | 0.1707 | — | 0.3728 | 5.35 | 3,184 MiB |
+| 1 | 0.1871 | +0.0164 | 0.3907 | 4.52 | 4,830 MiB |
+| 2 | 0.1940 | +0.0069 | 0.3967 | 1.75 | 6,556 MiB |
+
+**Reading it.** The gain roughly halves per negative added while cost climbs
+steeply: going from 1 to 2 costs 2.6x the wall time for 42% of the improvement the
+first negative bought.
+**Consequences.** This is the DL report's important *negative* result: row-private
+hard negatives alone will not close the gap to `overlap` 0.2149. Extrapolating the
+halving puts n=4 near 0.197–0.201. Testing 4 on the new GPU is worth doing to confirm
+the shape, but it should be framed as confirming saturation, not as a route to
+beating the baseline. The residual gap more plausibly belongs to the architecture,
+the from-scratch vocabulary, or the 0.26 mean positive score the model is trained
+against — which makes the selector ablation (`prepare.selector`) the more promising
+next lead than more negatives.
+
+### Multi-task grid complete: the head is free, and the control flipped the sign
+**What changed.** `runs/retriever_hn2_12k` (the matched control) and
+`runs/retriever_hn2_mt05`. All three cells now share hn=2 and `max_steps=12000`.
+**Evidence.** val, within-product, 87,475 rows:
+
+| weight | recall@1 | mrr | ans_recall | ans_acc | ans_f1 |
+|---|---|---|---|---|---|
+| 0.0 | 0.1924 | 0.3950 | — | — | — |
+| 0.1 | 0.1934 | 0.3962 | 0.901 | 0.700 | 0.796 |
+| 0.5 | 0.1939 | 0.3964 | 0.887 | 0.708 | 0.798 |
+| untrained | — | — | 0.996 | 0.655 | 0.790 |
+
+**Reading it.** The head learns: `ans_recall` 0.996 → 0.887 and accuracy 0.708
+against a 0.651 class prior. Retrieval rises monotonically across the cells but the
+whole spread is 0.0015, so the claim is *no measurable cost*, not *a gain*. Nothing
+suggests a trade-off even at 0.5; above 0.5 is untested.
+**Consequences, and the point of the exercise.** Against the unmatched 20k
+checkpoint the head appeared to **cost** 0.0006; against the matched 12k control it
+**gains** 0.0010. The confound was large enough to flip the sign of the effect. Any
+cross-grid comparison in this project needs a control at the same `max_steps`.
+
+### A 12k schedule lands ~0.0016 below a 20k one
+**Evidence.** hn=2, no head: the 12k schedule reaches within-product recall@1
+0.1924; the 20k run reaches 0.1940 at step 12000 and 0.1941 at step 20000.
+**Why.** The cosine decay is defined over `max_steps`, so a 12k run anneals faster
+and settles slightly lower. This is a property of the schedule, not evidence that
+the model was still learning.
+**Consequences.** 12k stays the right ablation length — every cell in a grid shares
+it and only relative differences are read. But a **headline** number for the report
+should come from a 20k run: quoting 0.1924 beside `overlap` 0.2149 would understate
+the retriever by roughly a sixth of the remaining gap.
+
 ## 2026-08-07
+
+### The multi-task head learns, and costs retrieval nothing
+**What changed.** `runs/retriever_hn2_mt01` — the first run in the project's history
+with `loss.answerable_weight > 0`, so the first time the answerability head has
+existed at runtime at all.
+**Evidence.** Head, val: `ans_recall` 0.9957 → **0.901**, `ans_acc` 0.6555 →
+**0.700**, `ans_f1` 0.7904 → 0.796. Retrieval, val within-product: recall@1
+**0.1934** against 0.1940 for hn=2 without the head.
+**Reading it.** Accuracy is +0.049 over the 0.651 class prior and recall has fallen
+well off 1.0, so the head is a real classifier rather than a constant function. F1
+moves barely at all because it is dominated by the majority class — `ans_recall` is
+the honest first read, and `ans_acc` alone would also have been misleading.
+**Consequences.** The auxiliary task does not compete with the retrieval objective
+at weight 0.1, so the "multi-task" half of the DL report now has a result behind it
+rather than a claim about code. Whether it can be pushed harder is what
+`answerable_weight=0.5` would answer.
+**Caveat.** The comparison is a 12k run against step 12000 of a 20k run, and those
+had different LR trajectories (below). `runs/retriever_hn2_12k` is the matched
+control.
+**Also:** the run was killed at step 11700 of 12000 by something outside the
+harness. It was already converged — `val/recall@1` flat at 0.281/0.281/0.280 across
+9k/10k/11k — so `best.pt` (step 10000) was scored rather than spending 20 minutes
+finishing.
+
+### `max_steps` is part of the comparison, not just the stopping rule
+**What changed.** Documented as a convention in the root `CLAUDE.md`.
+**Why.** `build_scheduler` takes `total_steps=cfg.train.max_steps`, so the cosine
+decay is defined over the configured length. Step 12000 of a 12k run has annealed
+the LR to zero; step 12000 of a 20k run is still mid-decay. Two checkpoints at the
+same step number from runs with different `max_steps` are **not** a controlled
+comparison, even though the project convention "compare at equal steps" is satisfied.
+**Consequences.** Every sweep already pins `max_steps` in its `fixed:` block, so
+grids are internally clean. Comparisons *across* grids of different lengths need a
+matched control — which is why `retriever_hn2_12k` is being run rather than reusing
+the 20k run's step-12000 checkpoint.
+
+### The answerability head's baseline is F1 0.79, not zero
+**What changed.** Documented in `src/qar/tasks/CLAUDE.md` and at the top of
+`sweeps/multitask.yaml`. No code change — the metrics were always right, the
+reading of them was the trap.
+**Why.** Validation is 65.1% answerable, so a head that always predicts "yes"
+scores precision 0.651, recall 1.000, F1 **0.789**, accuracy 0.651.
+**Evidence.** Measured at step 60 of a real run, before the head could have learned
+anything: `ans_acc` 0.6555, `ans_precision` 0.6563, `ans_recall` **0.9957**,
+`ans_f1` 0.7904 — the majority-class baseline almost exactly.
+**Consequences.** The head has done something only if F1 clears ~0.79 *and*
+`ans_recall` falls meaningfully below 1.0. `ans_recall` is the honest first read:
+while it sits near 1.0 the head is a constant function whatever F1 says. `ans_acc`
+should not be quoted at all — it cannot beat 0.651 without the model taking a real
+risk. Caught before any run produced a number, which is the only reason it will not
+appear in the report as a success.
+
+### Convergence measured: 12,000 steps with hard negatives
+**Evidence.** `retriever_b128_hn2` peaked in-batch at step 12000 (0.2886) and stayed
+flat to 20000 (0.281–0.289). Scored within-product, step 12000 gives recall@1 0.1940
+and step 20000 gives 0.1941 — the last 8,000 steps, ~1.3 h, bought 0.0001.
+`retriever_b128` (hn=0) was still rising at 20000.
+**Consequences.** `train.max_steps=12000` becomes the standard ablation length,
+cutting ~40% off every cell of a 19-cell grid. Two caveats for the report: the
+earliest surviving checkpoint was step 12000 (`keep_last=2` deleted the rest), so
+this is an upper bound on convergence rather than the point itself; and it is
+measured for hn=2 only — the two configurations demonstrably do not converge at the
+same rate, so an hn=0 arm may need longer to be fairly represented.
 
 ### Hard negatives lift within-product recall@1 from 0.1707 to 0.1940
 **What changed.** `runs/retriever_b128_hn2` — the same recipe as `retriever_b128`

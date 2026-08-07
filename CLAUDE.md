@@ -48,7 +48,12 @@ the short version.
 
 ## Hardware and environment
 
-- **Python 3.12** in `.venv` (3.14 is the machine default, but `tokenizers`/`faiss` lag there).
+- **GPU changed 2026-08-08.** Was an RTX 5060 Laptop (8 GiB, Blackwell sm_120); now an
+  RTX 3070 Ti (reported 16 GiB, Ampere sm_86). **Every memory and throughput figure in
+  this repo was measured on the 8 GiB card and needs re-probing** — see the migration
+  section at the top. bf16 stays correct on Ampere and still needs no GradScaler.
+- **Python 3.12** in `.venv` (3.14 was the old machine's default, but `tokenizers`/`faiss`
+  lag there; check what the new one ships before assuming).
 - **torch 2.13.0+cu130**, pinned to the PyTorch index in `pyproject.toml`. The default PyPI
   Windows wheel is CPU-only — never install torch without that index.
 - Windows + PowerShell. `data.num_workers` defaults to 0; raising it is a measured decision.
@@ -157,6 +162,12 @@ Loading runs at ~5,400 pairs/s single-threaded, so `num_workers=0` is not a bott
   tested something and did not.
 - **Step-based, not epoch-based.** Runs must stay comparable at equal optimisation steps
   even when the data subset size changes — which it will, for the scaling curve.
+- **Equal steps is not enough: `max_steps` must also match.** The cosine schedule is
+  defined over `train.max_steps`, so step 12000 of a 12k run has annealed the LR to
+  zero while step 12000 of a 20k run is still mid-decay. Two checkpoints at the same
+  step number from different `max_steps` are *not* a controlled comparison. Every
+  sweep pins `max_steps` in its `fixed:` block for exactly this reason; comparisons
+  *across* grids with different lengths need a matched control run.
 - **Metrics go to `runs/<name>/metrics.jsonl`**, append-only. Curves and ablation tables are
   read from there, never transcribed by hand — and read via
   `qar.utils.logging.read_series`, which resolves the duplicate steps a resumed run
@@ -243,59 +254,139 @@ runs/             per-run outputs and _baselines/ (gitignored)
 Everything still open is in **Upcoming objectives** below, in the order it should
 happen.
 
-## In flight — pick this up first
+## READ FIRST — moving to a new machine (written 2026-08-08)
 
-`runs/retriever_b128_hn2` — the hard-negative run, objective 1. Started 2026-08-06,
-batch 128, `loss.hard_negatives=2`, 20,000 steps at ~1.6 steps/s, so **~3.4 h**.
+The project is moving from an **RTX 5060 Laptop, 8 GiB, Blackwell sm_120** to an
+**RTX 3070 Ti, reported 16 GiB, Ampere sm_86**. Everything below assumes you are
+starting on the new machine with a fresh clone.
 
-If it was interrupted, it is resumable — `save_every=2000`, `keep_last=2`:
+### 1. What did NOT travel
+
+`/runs/` is gitignored apart from `_baselines/`, and the corpus is gitignored
+entirely. So the new clone has **no raw corpus, no processed corpus, and no
+checkpoints** — only the code, the docs and the results tables.
+
+Rebuild, in this order (~30 min plus the download):
+
+```bash
+uv venv --python 3.12 && uv sync --extra dev
+# then run data.ipynb to fetch the three raw .jsonl files (3.4 GB total)
+uv run pytest                                                 # 130 tests, all CPU
+uv run python scripts/prepare_data.py configs/base.yaml       # ~11 min
+uv run python scripts/build_idf.py configs/base.yaml          # ~3 min
+```
+
+**Do not re-run the lexical baselines to "check".** They are committed in
+`runs/_baselines/val.json` and cost nothing to trust; regenerating them is only
+correct if `prepare.*` changed, in which case the corpus is a different one and
+every trained number is invalidated too.
+
+**All trained checkpoints are gone.** Any run you want to *evaluate* again has to be
+*re-trained* first. Everything already measured is recorded below and in
+`CHANGELOG.md`, so nothing needs re-running just to recover a number.
+
+### 2. Every hardware figure in this file is 8 GiB / Blackwell — re-probe
+
+These were the binding constraints on the old card and are now **wrong**:
+
+| Recorded on the 5060 (8 GiB) | Status on the 3070 Ti |
+|---|---|
+| `hard_negatives=4` overcommits (9,757 MiB) and thrashes at 0.16 steps/s | Probably fits — **re-test before believing it is ruled out** |
+| batch 256 fits at 5,730 MiB, 1.6 steps/s | Should be comfortable; larger batches may now be reachable |
+| hn=2 runs at 1.75 steps/s, 6,556 MiB | Ampere is a different architecture; expect different throughput |
+| `retrieval.encode_batch=256`, ~3.5 min per full-val dense evaluation | Can likely go higher |
+
+Re-probe before committing to a long run — 30 steps is enough:
 
 ```bash
 uv run python scripts/train.py configs/retriever.yaml \
-    --set name=retriever_b128_hn2 data.batch_size=128 loss.hard_negatives=2 --resume
+    --set name=probe data.batch_size=256 loss.hard_negatives=4 \
+          train.max_steps=30 train.log_every=10 train.eval_every=0 train.save_every=0
 ```
 
-When it finishes, the number that decides the experiment is **not** in its training
-log. Score it the same way the baselines were scored:
+Then read `train/mem/alloc_mib` and `train/steps_per_s` from
+`runs/probe/metrics.jsonl`. **Allocation above physical VRAM does not raise on
+Windows** — it spills to system RAM and collapses throughput, which is how
+`hard_negatives=4` wasted an hour before. A plausible-looking run at 0.16 steps/s is
+that failure, not a slow model.
+
+Confirm the reported 16 GiB with the probe rather than trusting the spec: every
+batch-size and hard-negative decision in this project is memory-bound, and the whole
+`sweeps/` design was shaped by an 8 GiB ceiling that may no longer apply.
+
+**bf16 is fine on Ampere** (sm_80 and up), so `train.amp=bf16` stays correct and
+still needs no GradScaler. `torch 2.13.0+cu130` supports Ampere; the cu130 pin in
+`pyproject.toml` was for Blackwell but does no harm here — keep it rather than
+risking the CPU-only default PyPI wheel.
+
+### 3. What was running when the old machine stopped
+
+**Nothing.** `runs/retriever_b128_hn1` completed before the move and its result is
+committed in `runs/_baselines/val_hn1.json`, so the negatives curve is finished and
+needs no re-running. The command below is kept only as the pattern for the next
+single-cell run:
 
 ```bash
+uv run python scripts/train.py configs/retriever.yaml \
+    --set name=retriever_b128_hn1 data.batch_size=128 loss.hard_negatives=1 \
+          train.max_steps=20000
 uv run python scripts/evaluate_retrieval.py configs/retriever.yaml \
     --set retrieval.baselines=[dense] \
-          retrieval.checkpoint=runs/retriever_b128_hn2/checkpoints/best.pt \
-          retrieval.out_name=val_hn2
+          retrieval.checkpoint=runs/retriever_b128_hn1/checkpoints/best.pt \
+          retrieval.out_name=val_hn1
 ```
 
-Then compare `within_recall@1` against **dense 0.1707** (in-batch negatives only) and
-**overlap 0.2149**. Beating 0.1707 says hard negatives help; beating 0.2149 says the
-retriever finally earns its place in the report.
+`max_steps` must match whatever the run is being compared against — the cosine
+schedule is defined over it, so a 12k cell is not comparable with a 20k one. See the
+convention under Conventions.
 
-Write it to `out_name=val_hn2` rather than the shared `val` table until you have
-decided which run is *the* dense row — otherwise it silently supersedes the 0.1707
-already there.
+**The first thing worth running on the new card** is `hard_negatives=4`, which the
+8 GiB ceiling made impossible. Expect ~0.197-0.201 from the saturation trend, i.e.
+confirmation rather than a win. If it lands far above that, the saturation reading
+is wrong and more negatives are back on the table.
 
 ## Upcoming objectives
 
 Ordered by value, not by ease. Costs are measured on the 5060 where a comparable
 run exists. Nothing below needs new infrastructure unless it says so.
 
-### 1. ~~Hard negatives~~ — DONE 2026-08-07, and it worked
+### 1. ~~Hard negatives~~ — DONE 2026-08-08, curve complete
 
-hn=2 lifted within-product recall@1 from 0.1707 to **0.1940**. Full table and cost
-in the results section above.
+0.1707 → 0.1871 → 0.1940 for n = 0, 1, 2, all at 20k steps. **The effect saturates:**
++0.0164 then +0.0069, while cost rises 5.35 → 4.52 → 1.75 steps/s. Full table in the
+results section above.
 
-**What is left of it:** the effect has one point, not a shape. `hard_negatives=1`
-would say whether the gain is linear or saturating, and it is ~3 h.
-`hard_negatives=4` **does not fit** — 9,757 MiB against 8,151, no exception raised,
-0.16 steps/s. `sweeps/negatives.yaml` covers `[0, 1, 2]`.
+**What is left of it:** `hard_negatives=4` was impossible on the 8 GiB card (9,757
+MiB, no exception raised, 0.16 steps/s) and may fit on the new one. Worth one run to
+confirm the saturation, not as a route to beating `overlap` — the extrapolation lands
+near 0.197–0.201, still short of 0.2149.
 
-### 2. Train to convergence, not to `max_steps`
+### 2. ~~Train to convergence~~ — ANSWERED 2026-08-07: 12,000 steps
 
-The 20k run was **still rising** when it stopped, so no number from it is a ceiling.
-Extend until `val/recall@1` flattens, then keep that as the standard length for
-every ablation — comparability at equal steps is a project convention.
+**With hard negatives the run converges by step 12,000.** `retriever_b128_hn2`
+peaked in-batch at 12000 and stayed flat to 20000 (0.281–0.289); scored
+within-product, step 12000 gives 0.1940 and step 20000 gives 0.1941. The last 8,000
+steps — ~1.3 h — bought 0.0001 recall@1.
 
-**Watch:** batch 256 fits (5,730 MiB) but runs at 1.6 steps/s → ~3.5 h. Budget it
-deliberately; it is not a free upgrade.
+`retriever_b128` (hn=0) was still rising at 20000, so the two configurations do not
+converge at the same rate: a more informative gradient per step gets there sooner.
+
+**Use `train.max_steps=12000` as the standard ablation length**, which cuts ~40% off
+every cell. Three caveats worth stating in the report:
+
+- The earliest checkpoint that survived `keep_last=2` was step 12000, so convergence
+  may be earlier still and this is an upper bound, not the point itself.
+- It is measured for hn=2 only. hn=0 was still rising at 20000, so the two
+  configurations demonstrably do not converge at the same rate and an hn=0 arm may
+  need longer to be fairly represented.
+- **A 12k schedule costs ~0.0016 in absolute terms.** `retriever_hn2_12k` reaches
+  0.1924 where the 20k run reaches 0.1940/0.1941. The shorter cosine anneals faster
+  and lands slightly lower. That is fine for *relative* comparisons inside a grid,
+  where every cell shares the schedule — but a headline number for the report should
+  come from a 20k run, not a 12k ablation cell.
+
+**Still open:** batch 256 fits (5,730 MiB) at 1.6 steps/s. Batch size is the number
+of negatives, so this is a real axis, not a speed knob — budget it deliberately.
 
 ### 3. The DL ablation grid
 
@@ -308,11 +399,33 @@ Both blockers are cleared: `score_batch` batches `dense` evaluation, and `sweep.
 that matters. **Read `within_recall@1`, never the logged `val/recall@1`** — twice
 today the in-batch number would have supported a wrong conclusion.
 
-### 4. The answerability head, actually trained
+### 4. ~~The answerability head~~ — DONE 2026-08-08, grid complete
 
-`loss.answerable_weight` has been 0 in every run, so the multi-task head has never
-existed at runtime. Until it is trained, the "multi-task" half of the DL report is a
-claim about code rather than a result.
+Three cells, all hn=2, all `max_steps=12000`, so the comparison is controlled.
+Retrieval is within-product on whole val; head metrics are from `metrics.jsonl`.
+
+| `answerable_weight` | recall@1 | mrr | `ans_recall` | `ans_acc` | `ans_f1` |
+|---|---|---|---|---|---|
+| 0.0 (`retriever_hn2_12k`, control) | 0.1924 | 0.3950 | — | — | — |
+| 0.1 (`retriever_hn2_mt01`) | 0.1934 | 0.3962 | 0.901 | 0.700 | 0.796 |
+| 0.5 (`retriever_hn2_mt05`) | 0.1939 | 0.3964 | 0.887 | 0.708 | 0.798 |
+| *untrained head, for reference* | — | — | 0.996 | 0.655 | 0.790 |
+
+**The head learns.** It stops being a constant function — `ans_recall` falls from
+0.996 to 0.887, and accuracy reaches 0.708 against the 0.651 class prior. F1 moves
+barely at all because it is dominated by the majority class, which is exactly why
+`ans_recall` is the honest first read and `ans_acc` alone would mislead.
+
+**It does not compete with retrieval, even at 0.5.** Recall@1 rises monotonically
+across the three cells (0.1924 → 0.1934 → 0.1939). The total spread is 0.0015, small
+enough that the honest claim is *no measurable cost*, not *a gain* — but the
+direction is consistent and nothing suggests a trade-off yet. A weight above 0.5 is
+untested.
+
+**The control mattered, and this is why.** Before it existed, the head was compared
+against step 12000 of the 20k run and appeared to *cost* 0.0006. Against the matched
+12k control it *gains* 0.0010. The confound was large enough to flip the sign of the
+effect — see the `max_steps` convention above.
 
 ### 5. First numbers on test
 
@@ -370,6 +483,28 @@ validation, 87,475 rows:
 **+0.0233 recall@1, a 13.6% relative gain, from a single config field.** The
 diagnosis was right: the model trained only on other-product negatives had learned
 topic, and showing it same-product negatives taught it relevance.
+
+### The effect saturates (completed 2026-08-08)
+
+All three cells at batch 128, `max_steps=20000`, so the schedules match:
+
+| `hard_negatives` | recall@1 | Δ vs previous | mrr | steps/s | VRAM |
+|---|---|---|---|---|---|
+| 0 | 0.1707 | — | 0.3728 | 5.35 | 3,184 MiB |
+| 1 | 0.1871 | **+0.0164** | 0.3907 | 4.52 | 4,830 MiB |
+| 2 | 0.1940 | **+0.0069** | 0.3967 | 1.75 | 6,556 MiB |
+
+**The gain roughly halves with each negative added** while the cost rises steeply —
+the step from 1 to 2 negatives is 2.6x slower for 42% of the improvement the first
+one bought. Naive extrapolation puts `hard_negatives=4` near 0.197–0.201, still short
+of `overlap` 0.2149.
+
+That is the important negative result for the DL report: **row-private hard negatives
+alone will not close the gap to token overlap.** Testing 4 on the new GPU is worth
+doing to confirm the shape, but it should be framed as confirming saturation rather
+than as a route to beating the baseline. The remaining gap more plausibly belongs to
+the architecture, the from-scratch vocabulary, or the 0.26 mean positive score the
+whole model is trained against.
 
 **It still does not beat `overlap`.** hn=2 pulls level with `bm25_noidf` (0.1940 vs
 0.1942) and remains 0.021 behind plain token F1. So the honest headline is *hard
