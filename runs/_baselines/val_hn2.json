@@ -1,0 +1,58 @@
+{
+  "split": "val",
+  "processed_dir": "data/processed",
+  "bm25": {
+    "k1": 1.5,
+    "b": 0.75
+  },
+  "tie_break_seed": 12345,
+  "results": {
+    "dense": {
+      "rows": 87475,
+      "mean_pool": 9.33,
+      "overall": {
+        "mrr": 0.3967,
+        "recall@1": 0.194,
+        "recall@3": 0.4591,
+        "recall@5": 0.6557,
+        "mean_rank": 4.403
+      },
+      "by_question_type": {
+        "descriptive": {
+          "rows": 74516,
+          "mrr": 0.3962,
+          "recall@1": 0.1933,
+          "recall@3": 0.4592,
+          "recall@5": 0.6545,
+          "mean_rank": 4.4089
+        },
+        "yesno": {
+          "rows": 12959,
+          "mrr": 0.3994,
+          "recall@1": 0.1977,
+          "recall@3": 0.4586,
+          "recall@5": 0.662,
+          "mean_rank": 4.3691
+        }
+      },
+      "by_answerable": {
+        "answerable": {
+          "rows": 56925,
+          "mrr": 0.3797,
+          "recall@1": 0.1766,
+          "recall@3": 0.4351,
+          "recall@5": 0.6382,
+          "mean_rank": 4.545
+        },
+        "unanswerable": {
+          "rows": 30550,
+          "mrr": 0.4283,
+          "recall@1": 0.2264,
+          "recall@3": 0.5039,
+          "recall@5": 0.6881,
+          "mean_rank": 4.1385
+        }
+      }
+    }
+  }
+}
